@@ -2,7 +2,7 @@
 node_modules/
 
 # Logs folder in be
-be/logs/
+logs/
 
 # Log files
 *.log

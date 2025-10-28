@@ -9,9 +9,13 @@ import rateLimit from "express-rate-limit";
 import compression from "compression";
 import { Server } from "socket.io";
 
-import logger from "./utils/logger.js"; // Giả sử bạn có file logger.js với Winston
-import mainRouter from "./routes/index.js";
-// import connectDB from "./config/connectDB.js";
+import logger from "./src/utils/logger.js";
+import mainRouter from "./src/routes/index.js";
+
+// --- THÊM IMPORT KẾT NỐI DATABASE ---
+// (Giả sử file database.js của bạn nằm ở ./config/database.js)
+import { testConnection } from "./src/configs/database.js";
+// import connectDB from "./config/connectDB.js"; // <--- Bỏ dòng này
 
 // Tải biến môi trường ngay từ đầu
 dotenv.config();
@@ -24,30 +28,19 @@ async function startServer() {
 
   try {
     // --- CẤU HÌNH MIDDLEWARE BẢO MẬT & HIỆU NĂNG ---
-
-    // Bảo mật các HTTP header cơ bản
+    // (Giữ nguyên toàn bộ phần này: helmet, rateLimit, compression, cors)
     app.use(helmet());
-
-    // Giới hạn số lượng request để chống tấn công DoS/brute-force
     app.use(
       rateLimit({
-        windowMs: 15 * 60 * 1000, // 15 phút
-        max: 200, // Giới hạn 200 requests mỗi IP trong 15 phút
+        windowMs: 15 * 60 * 1000,
+        max: 200,
         message: { error: "Quá nhiều yêu cầu, vui lòng thử lại sau." },
         standardHeaders: true,
         legacyHeaders: false,
       })
     );
-
-    // Nén response body để tăng tốc độ tải
     app.use(compression());
-
-    // Cấu hình CORS chặt chẽ cho Zalo Mini App
-    const allowedOrigins = [
-      "https://mini.zalo.me", // Domain chính của Zalo Mini App
-      "https://zmini.me", // Một domain khác của Zalo
-    ];
-    // Cho phép localhost khi đang phát triển
+    const allowedOrigins = ["https://mini.zalo.me", "https://zmini.me"];
     if (process.env.NODE_ENV === "development") {
       allowedOrigins.push("http://localhost:3000");
     }
@@ -60,52 +53,40 @@ async function startServer() {
         }
       },
       methods: ["GET", "POST", "PUT", "DELETE"],
-      allowedHeaders: ["Content-Type", "Authorization"], // Cho phép gửi JWT token
+      allowedHeaders: ["Content-Type", "Authorization"],
     };
-    app.use(cors(corsOptions));
+    app.use(cors(corsOptions)); // --- CẤU HÌNH PARSER & LOGGING --- // (Giữ nguyên phần này: express.json, morgan)
 
-    // --- CẤU HÌNH PARSER & LOGGING ---
-
-    // Đọc body của request dưới dạng JSON
     app.use(express.json({ limit: "10mb" }));
     app.use(express.urlencoded({ extended: true, limit: "10mb" }));
-
-    // Ghi log request HTTP với Morgan (chuyển output vào Winston)
     app.use(
       morgan("combined", {
         stream: { write: (message) => logger.info(message.trim()) },
       })
-    );
+    ); // --- KẾT NỐI DATABASE ---
 
-    // --- KẾT NỐI DATABASE ---
-    // logger.info("... Đang kết nối tới cơ sở dữ liệu...");
-    // await connectDB();
-    // logger.info("✅ Kết nối cơ sở dữ liệu thành công!");
-
-    // --- CẤU HÌNH ROUTES ---
+    logger.info("...Đang kết nối tới cơ sở dữ liệu"); // <--- GỌI HÀM KẾT NỐI CỦA BẠN TẠI ĐÂY ---
+    await testConnection(); // (Hàm testConnection của bạn đã tự log khi thành công // và tự process.exit(1) khi thất bại, nên rất an toàn) // --- CẤU HÌNH ROUTES ---
     mainRouter(app);
-    logger.info("✅ Cấu hình routes thành công!");
+    logger.info("Cấu hình routes thành công!"); // --- XỬ LÝ LỖI --- // (Giữ nguyên phần này)
 
-    // --- XỬ LÝ LỖI ---
-    // Middleware xử lý lỗi 404 (khi không tìm thấy route)
     app.use((req, res, next) => {
       res.status(404).json({ error: "Endpoint không tồn tại." });
     });
-
-    // Middleware xử lý lỗi toàn cục (bắt lỗi từ các route)
     app.use((error, req, res, next) => {
       logger.error(error.stack);
       res.status(500).json({
         error: "Đã có lỗi xảy ra ở server.",
-        // Chỉ hiện chi tiết lỗi ở môi trường development
-        message: process.env.NODE_ENV === "development" ? error.message : undefined,
+        message:
+          process.env.NODE_ENV === "development" ? error.message : undefined,
       });
-    });
+    }); // --- KHỞI ĐỘNG SERVER ---
 
-    // --- KHỞI ĐỘNG SERVER ---
     const PORT = process.env.PORT || 8080;
     server.listen(PORT, () => {
-      logger.info(`🚀 Server đang chạy tại cổng ${PORT} [${process.env.NODE_ENV}]`);
+      logger.info(
+        `Server đang chạy tại cổng ${PORT} [${process.env.NODE_ENV}]`
+      );
     });
   } catch (error) {
     logger.error("❌ Lỗi nghiêm trọng khi khởi động server:", error);

@@ -1,16 +1,14 @@
 import express from "express";
-import productsRouter from "./products.route.js";
-import categoriesRouter from "./categories.route.js";
-import shoppingCartRouter from "./shopping-cart.route.js";
-import ordersRouter from "./orders.route.js";
-import othersRouter from "./others.route.js";
+import newsRouter from "./news.routes.js";
+import categoryRouter from "./category.routes.js";
+import userRouter from "./user.routes.js";
+import productsRouter from "./products.routes.js";
 
-const mainRouter = express.Router();
-
-mainRouter.use("/products", productsRouter);
-mainRouter.use("/categories", categoriesRouter);
-mainRouter.use("/cart", shoppingCartRouter);
-mainRouter.use("/orders", ordersRouter);
-mainRouter.use("/others", othersRouter);
+const mainRouter = (server) => {
+  server.use("/user", userRouter);
+  server.use("/product", productsRouter);
+  server.use("/news", newsRouter);
+  server.use("/category", categoryRouter);
+};
 
 export default mainRouter;
