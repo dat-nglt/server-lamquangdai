@@ -7,28 +7,23 @@ import http from "http";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import compression from "compression";
-import { Server } from "socket.io";
+import { Server } from "socket.io"; // (Bạn có import nhưng chưa dùng, vẫn giữ lại)
 
 import logger from "./src/utils/logger.js";
 import mainRouter from "./src/routes/index.js";
+import db from "./src/models/index.js";
 
-// --- THÊM IMPORT KẾT NỐI DATABASE ---
-// (Giả sử file database.js của bạn nằm ở ./config/database.js)
-import { testConnection } from "./src/configs/database.js";
-// import connectDB from "./config/connectDB.js"; // <--- Bỏ dòng này
-
-// Tải biến môi trường ngay từ đầu
 dotenv.config();
 
 // Hàm khởi động server chính
 async function startServer() {
-  logger.info("🔧 Bắt đầu khởi tạo server cho Zalo Mini App...");
+  logger.info("Bắt đầu khởi tạo server cho Zalo Mini App...");
   const app = express();
   const server = http.createServer(app);
 
   try {
     // --- CẤU HÌNH MIDDLEWARE BẢO MẬT & HIỆU NĂNG ---
-    // (Giữ nguyên toàn bộ phần này: helmet, rateLimit, compression, cors)
+    // (Giữ nguyên toàn bộ phần này: helmet, rateLimit, compression, cors...)
     app.use(helmet());
     app.use(
       rateLimit({
@@ -42,7 +37,7 @@ async function startServer() {
     app.use(compression());
     const allowedOrigins = ["https://mini.zalo.me", "https://zmini.me"];
     if (process.env.NODE_ENV === "development") {
-      allowedOrigins.push("http://localhost:3000");
+      allowedOrigins.push("http://localhost:3000"); // Cho phép localhost dev
     }
     const corsOptions = {
       origin: (origin, callback) => {
@@ -55,24 +50,47 @@ async function startServer() {
       methods: ["GET", "POST", "PUT", "DELETE"],
       allowedHeaders: ["Content-Type", "Authorization"],
     };
-    app.use(cors(corsOptions)); // --- CẤU HÌNH PARSER & LOGGING --- // (Giữ nguyên phần này: express.json, morgan)
+    app.use(cors(corsOptions));
 
+    // --- CẤU HÌNH PARSER & LOGGING ---
+    // (Giữ nguyên phần này)
     app.use(express.json({ limit: "10mb" }));
     app.use(express.urlencoded({ extended: true, limit: "10mb" }));
     app.use(
       morgan("combined", {
         stream: { write: (message) => logger.info(message.trim()) },
       })
-    ); // --- KẾT NỐI DATABASE ---
+    );
 
-    logger.info("...Đang kết nối tới cơ sở dữ liệu"); // <--- GỌI HÀM KẾT NỐI CỦA BẠN TẠI ĐÂY ---
-    await testConnection(); // (Hàm testConnection của bạn đã tự log khi thành công // và tự process.exit(1) khi thất bại, nên rất an toàn) // --- CẤU HÌNH ROUTES ---
+    // --- KẾT NỐI VÀ ĐỒNG BỘ DATABASE ---
+
+    logger.info("---- Đang kết nối tới cơ sở dữ liệu");
+    // 1. Xác thực kết nối
+    await db.sequelize.authenticate();
+    logger.info("Kết nối CSDL thành công");
+
+    // 2. BỔ SUNG: ĐỒNG BỘ DATABASE (CHỈ TRONG DEVELOPMENT)
+    if (process.env.NODE_ENV === "development") {
+      logger.info("---- Đang đồng bộ CSDL");
+
+      // Dùng { alter: true } - AN TOÀN cho development
+      // Cố gắng thay đổi (ALTER) bảng để khớp với model.
+      await db.sequelize.sync({ alter: true });
+      // await db.sequelize.sync({ force: true });
+      // logger.warn('⚠️ CSDL đã được reset với { force: true } (Mất hết dữ liệu)');
+      // CẢNH BÁO: Lệnh này sẽ XÓA TẤT CẢ BẢNG và tạo lại. MẤT HẾT DỮ LIỆU.
+      logger.info("Đồng bộ CSDL thành công với");
+    }
+
+    // --- CẤU HÌNH ROUTES ---
     mainRouter(app);
-    logger.info("Cấu hình routes thành công!"); // --- XỬ LÝ LỖI --- // (Giữ nguyên phần này)
+    logger.info("Cấu hình routes thành công");
 
+    // --- XỬ LÝ LỖI ---
     app.use((req, res, next) => {
       res.status(404).json({ error: "Endpoint không tồn tại." });
     });
+
     app.use((error, req, res, next) => {
       logger.error(error.stack);
       res.status(500).json({
@@ -80,8 +98,9 @@ async function startServer() {
         message:
           process.env.NODE_ENV === "development" ? error.message : undefined,
       });
-    }); // --- KHỞI ĐỘNG SERVER ---
+    });
 
+    // --- KHỞI ĐỘNG SERVER ---
     const PORT = process.env.PORT || 8080;
     server.listen(PORT, () => {
       logger.info(
@@ -89,9 +108,10 @@ async function startServer() {
       );
     });
   } catch (error) {
-    logger.error("❌ Lỗi nghiêm trọng khi khởi động server:", error);
+    logger.error("Lỗi nghiêm trọng khi khởi động server:", error);
     process.exit(1); // Thoát tiến trình nếu khởi động thất bại
   }
 }
 
+// Bắt đầu chạy server
 startServer();

@@ -1,63 +1,60 @@
 import { DataTypes } from "sequelize";
-import { sequelize } from "../config/database.js";
-import bcrypt from "bcryptjs";
 
-const User = sequelize.define(
-  "User",
-  {
-    id: {
-      type: DataTypes.UUID,
-      defaultValue: DataTypes.UUIDV4,
-      primaryKey: true,
-    },
-    name: {
-      type: DataTypes.STRING,
-      allowNull: false,
-      validate: {
-        notEmpty: true,
+const init = (sequelize) => {
+  const Users = sequelize.define(
+    "Users",
+    {
+      user_id: {
+        type: DataTypes.UUID,
+        defaultValue: DataTypes.UUIDV4,
+        primaryKey: true,
+      },
+      full_name: {
+        type: DataTypes.STRING(100),
+        allowNull: false,
+      },
+      phone: {
+        type: DataTypes.STRING(15),
+        allowNull: false,
+        unique: true,
+      },
+      email: {
+        type: DataTypes.STRING(100),
+        allowNull: true,
+        validate: {
+          isEmail: true,
+        },
+      },
+      password: {
+        type: DataTypes.STRING(255),
+        allowNull: false,
+      },
+      address: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+      },
+      role: {
+        type: DataTypes.ENUM("customer", "admin"),
+        defaultValue: "customer",
+      },
+      created_at: {
+        type: DataTypes.DATE,
+        defaultValue: DataTypes.NOW,
       },
     },
-    email: {
-      type: DataTypes.STRING,
-      allowNull: false,
-      unique: true,
-      validate: {
-        isEmail: true,
-      },
-    },
-    password: {
-      type: DataTypes.STRING,
-      allowNull: false,
-    },
-    role: {
-      type: DataTypes.ENUM("user", "admin"),
-      defaultValue: "user",
-    },
-  },
-  {
-    tableName: "users",
-    timestamps: true,
-    hooks: {
-      beforeCreate: async (user) => {
-        if (user.password) {
-          user.password = await bcrypt.default.hash(user.password, 12);
-        }
-      },
-      beforeUpdate: async (user) => {
-        if (user.changed("password")) {
-          user.password = await bcrypt.default.hash(user.password, 12);
-        }
-      },
-    },
-  }
-);
+    {
+      tableName: "users",
+      timestamps: false,
+    }
+  );
 
-// Instance method
-User.prototype.correctPassword = async function (
-  candidatePassword,
-  userPassword
-) {
-  return await bcrypt.default.compare(candidatePassword, userPassword);
+  Users.associate = (db) => {
+    Users.hasMany(db.Orders, { foreignKey: "user_id" });
+    Users.hasMany(db.Cart, { foreignKey: "user_id" });
+    Users.hasOne(db.Memberships, { foreignKey: "user_id" });
+  };
+
+  return Users;
 };
 
-export default User;
+export default init;
