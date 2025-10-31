@@ -1,5 +1,4 @@
 import { DataTypes } from "sequelize";
-import { v4 as uuidv4 } from "uuid"; // ✅ dùng để sinh UUID khi bulkInsert
 
 export const up = async (queryInterface, Sequelize) => {
   await queryInterface.createTable("brands", {
@@ -26,7 +25,6 @@ export const up = async (queryInterface, Sequelize) => {
 
   // ✅ Thêm index cho tên thương hiệu
   await queryInterface.addIndex("brands", ["brand_name"]);
-
 };
 
 export const down = async (queryInterface, Sequelize) => {

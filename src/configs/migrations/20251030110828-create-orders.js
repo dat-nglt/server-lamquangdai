@@ -2,65 +2,63 @@
 
 /** @type {import('sequelize-cli').Migration} */
 export const up = async (queryInterface, Sequelize) => {
-  const { DataTypes } = Sequelize;
-
-  await queryInterface.createTable("products", {
-    product_id: {
-      type: DataTypes.UUID,
-      defaultValue: DataTypes.UUIDV4,
+  await queryInterface.createTable("orders", {
+    order_id: {
+      type: Sequelize.UUID,
+      defaultValue: Sequelize.UUIDV4,
       primaryKey: true,
       allowNull: false,
     },
-    product_name: {
-      type: DataTypes.STRING(200),
-      allowNull: false,
-    },
-    brand_id: {
-      type: DataTypes.UUID,
+    user_id: {
+      type: Sequelize.UUID,
       allowNull: false,
       references: {
-        model: "brands",
-        key: "brand_id",
+        model: "users", // Tên bảng users
+        key: "user_id",
       },
       onUpdate: "CASCADE",
-      onDelete: "RESTRICT",
+      onDelete: "RESTRICT", // Ngăn xóa User nếu họ có Order
     },
-    description: {
-      type: DataTypes.TEXT,
-      allowNull: true,
-    },
-    price: {
-      type: DataTypes.DECIMAL(12, 2),
+    order_date: {
+      type: Sequelize.DATE,
       allowNull: false,
+      defaultValue: Sequelize.NOW,
     },
-    image_url: {
-      type: DataTypes.STRING(255),
-      allowNull: true,
+    total_price: {
+      type: Sequelize.DECIMAL(12, 2),
+      allowNull: false,
+      // validate: { min: 0 } là quy tắc ở tầng model
     },
     status: {
-      type: DataTypes.ENUM("active", "inactive", "out_of_stock"),
+      type: Sequelize.ENUM(
+        "pending",
+        "confirmed",
+        "shipping",
+        "delivered",
+        "cancelled"
+      ),
       allowNull: false,
-      defaultValue: "active",
+      defaultValue: "pending",
     },
-    created_at: {
-      type: DataTypes.DATE,
+    delivery_address: {
+      type: Sequelize.TEXT,
       allowNull: false,
-      defaultValue: DataTypes.NOW,
     },
+    // Không có createdAt/updatedAt vì model có 'timestamps: false'
   });
 
-  await queryInterface.addIndex("products", ["brand_id"]);
-  await queryInterface.addIndex("products", ["status"]);
+  // Ghi chú:
+  // Cột `user_id` là một foreign key,
+  // nên index sẽ thường được tự động tạo bởi CSDL.
+  // Bạn có thể thêm index một cách tường minh nếu muốn:
+  await queryInterface.addIndex("orders", ["user_id"]);
+  await queryInterface.addIndex("orders", ["status"]); // Index cột status cũng là một ý hay
 };
 
 export const down = async (queryInterface, Sequelize) => {
-  await queryInterface.removeIndex("products", ["brand_id"]);
-  await queryInterface.removeIndex("products", ["status"]);
+  // Nếu bạn đã thêm index ở trên, hãy xóa chúng ở đây:
+  await queryInterface.removeIndex("orders", ["user_id"]);
+  await queryInterface.removeIndex("orders", ["status"]);
 
-  await queryInterface.dropTable("products");
-
-  // Nếu bạn dùng PostgreSQL, thêm dòng này để tránh lỗi khi rollback ENUM
-  await queryInterface.sequelize.query(
-    'DROP TYPE IF EXISTS "enum_products_status";'
-  );
+  await queryInterface.dropTable("orders");
 };
