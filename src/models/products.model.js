@@ -21,6 +21,18 @@ const init = (sequelize) => {
           key: "brand_id",
         },
       },
+
+      // --- TRƯỜNG MỚI ĐỂ LIÊN KẾT VỚI CATEGORY ---
+      category_id: {
+        type: DataTypes.UUID,
+        allowNull: false, // Có thể đặt là true nếu sản phẩm không nhất thiết phải có danh mục
+        references: {
+          model: "categories", // Tham chiếu đến bảng 'categories'
+          key: "category_id",
+        },
+      },
+      // --- KẾT THÚC TRƯỜNG MỚI ---
+
       description: {
         type: DataTypes.TEXT,
         allowNull: true,
@@ -35,6 +47,11 @@ const init = (sequelize) => {
       image_url: {
         type: DataTypes.STRING(255),
         allowNull: true,
+      },
+      specifications: {
+        type: DataTypes.JSON,
+        allowNull: true,
+        defaultValue: {},
       },
       status: {
         type: DataTypes.ENUM("active", "inactive", "out_of_stock"),
@@ -53,6 +70,12 @@ const init = (sequelize) => {
 
   Products.associate = (db) => {
     Products.belongsTo(db.Brands, { foreignKey: "brand_id" });
+
+    // --- LIÊN KẾT MỚI VỚI CATEGORY ---
+    // Một sản phẩm thuộc về một danh mục
+    Products.belongsTo(db.Categories, { foreignKey: "category_id" });
+    // --- KẾT THÚC LIÊN KẾT MỚI ---
+
     Products.hasMany(db.Cart, { foreignKey: "product_id" });
     Products.hasMany(db.OrderDetails, { foreignKey: "product_id" });
   };
