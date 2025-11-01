@@ -1,6 +1,6 @@
 // src/controllers/brands.controller.js
 
-import { createBrandService, deleteBrandService, getAllBrandsService, getBrandByIdService, updateBrandService } from "../services/brands.service";
+import { createBrandService, deleteBrandService, getAllBrandsService, getBrandByIdService, updateBrandService } from "../services/brands.service.js";
 
 /**
  * ----------------------------------------

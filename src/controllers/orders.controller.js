@@ -1,4 +1,4 @@
-import { createOrderService, getAllOrdersService, getOrderDetailsService, getOrdersByUserIdService, updateOrderStatusService } from "../services/orders.service";
+import { createOrderService, getAllOrdersService, getOrderDetailsService, getOrdersByUserIdService, updateOrderStatusService } from "../services/orders.service.js";
 
 /**
  * ----------------------------------------

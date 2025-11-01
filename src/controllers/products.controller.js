@@ -1,4 +1,4 @@
-import { createProductService, deleteProductService, getAllProductsService, getProductByIdService, updateProductService } from "../services/product.service";
+import { createProductService, deleteProductService, getAllProductsService, getProductByIdService, updateProductService } from "../services/product.service.js";
 
 /**
  * ----------------------------------------

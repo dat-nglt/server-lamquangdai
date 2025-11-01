@@ -17,6 +17,7 @@ dotenv.config();
 
 // Hàm khởi động server chính
 async function startServer() {
+  console.clear();
   logger.info("Bắt đầu khởi tạo server cho Zalo Mini App...");
   const app = express();
   const server = http.createServer(app);

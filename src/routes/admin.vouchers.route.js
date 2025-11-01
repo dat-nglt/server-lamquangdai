@@ -8,10 +8,9 @@ import {
   updateVoucherController,
   deleteVoucherController,
 } from "../controllers/vouchers.controller.js"; // (Giả định đường dẫn)
+import { checkAdmin, checkAuth } from "../middlewares/auth.middleware.js";
 
 // 2. Import middleware (BẮT BUỘC)
-import { checkAuth, checkAdmin } from "../middlewares/auth.middleware.js"; // (Giả định đường dẫn)
-
 // 3. Khởi tạo router
 const routeForAdminVoucher = express.Router();
 

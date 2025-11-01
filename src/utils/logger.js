@@ -60,10 +60,20 @@ const logger = winston.createLogger({
   // Xử lý các lỗi không được bắt (uncaught exceptions) để ghi vào file riêng
   exceptionHandlers: [
     new winston.transports.File({ filename: "logs/exceptions.log" }),
+
+    new winston.transports.Console({
+      // Tái sử dụng định dạng để log ra console cho đẹp
+      format: combine(colorize(), logFormat),
+    }),
   ],
+
   // Xử lý các Promise bị từ chối không được xử lý (unhandled rejections) để ghi vào file riêng
   rejectionHandlers: [
     new winston.transports.File({ filename: "logs/rejections.log" }),
+    new winston.transports.Console({
+      // Tái sử dụng định dạng để log ra console cho đẹp
+      format: combine(colorize(), logFormat),
+    }),
   ],
 });
 

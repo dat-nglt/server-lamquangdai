@@ -1,4 +1,4 @@
-import { createPromotionService, deletePromotionService, getAllPromotionsService, getPromotionByIdService, updatePromotionService } from "../services/promotions.service";
+import { createPromotionService, deletePromotionService, getAllPromotionsService, getPromotionByIdService, updatePromotionService } from "../services/promotions.service.js";
 
 /**
  * ----------------------------------------

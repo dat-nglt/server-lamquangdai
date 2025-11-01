@@ -4,7 +4,7 @@ import { Op } from "sequelize"; // Import Operators
 import db from "../models/index.js";
 
 // Import tất cả model cần thiết
-const { Products, Brands, Categories, OrderDetails } = db;D
+const { Products, Brands, Categories, OrderDetails } = db;
 
 /**
  * ----------------------------------------

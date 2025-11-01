@@ -6,7 +6,7 @@ import {
   getAllMembershipsService,
   getMembershipByUserIdService,
   updateMembershipDetailsService,
-} from "../services/memberships.service";
+} from "../services/memberships.service.js";
 
 /**
  * ----------------------------------------

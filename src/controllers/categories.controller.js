@@ -4,7 +4,7 @@ import {
   getAllCategoriesAsTreeService,
   getCategoryByIdService,
   updateCategoryService,
-} from "../services/category.service";
+} from "../services/category.service.js";
 
 /**
  * ----------------------------------------

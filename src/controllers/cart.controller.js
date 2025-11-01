@@ -4,7 +4,7 @@ import {
   getCartByUserIdService,
   removeItemFromCartService,
   updateItemQuantityService,
-} from "../services/cart.service";
+} from "../services/cart.service.js";
 
 // Hàm trợ giúp để lấy userId (giả định từ middleware auth)
 const getUserIdFromRequest = (req) => {

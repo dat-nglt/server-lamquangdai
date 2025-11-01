@@ -5,6 +5,7 @@ import { DataTypes } from "sequelize";
 import User from "./user.model.js";
 import Articles from "./articles.model.js";
 import Brands from "./brands.model.js";
+import Categories from "./category.model.js";
 import Cart from "./cart.model.js";
 import Memberships from "./memberships.model.js";
 import OrderDetails from "./orderDetails.model.js";
@@ -20,6 +21,7 @@ const modelDefiners = [
   User,
   Articles,
   Brands,
+  Categories,
   Cart,
   Memberships,
   OrderDetails,

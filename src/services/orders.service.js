@@ -14,7 +14,7 @@ const {
 } = db;
 
 // Import các service khác để dùng (ví dụ: xoá giỏ hàng)
-import { clearCart } from "./cart.service.js";
+import { clearCartService } from "./cart.service.js";
 // (Bạn cũng có thể import service Vouchers và Memberships nếu cần)
 
 /**
@@ -112,8 +112,8 @@ export const createOrderService = async (userId, orderData) => {
 
     // 8. Dọn dẹp giỏ hàng
     // (Giả định 'clearCart' đã được sửa để chấp nhận transaction)
-    await clearCart(userId, t);
-    // Nếu clearCart không nhận 't', bạn có thể xoá thủ công:
+    await clearCartService(userId, t);
+    // Nếu clearCartService không nhận 't', bạn có thể xoá thủ công:
     // await Cart.destroy({ where: { user_id: userId }, transaction: t });
 
     // 9. Commit transaction nếu mọi thứ thành công
