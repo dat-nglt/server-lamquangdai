@@ -32,7 +32,7 @@ routeForArticle.put("/:id", updateArticleController);
 
 // @route DELETE /api/articles/:id
 // @desc Xoá một bài viết
-routeForArticle.delete("/:id", deleteArticleController);
-
+routeForArticle.delete("/:id", );
+deleteArticleController
 // 4. Export router
 export default routeForArticle;

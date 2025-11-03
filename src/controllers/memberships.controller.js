@@ -56,7 +56,7 @@ export const getMyMembershipController = async (req, res) => {
 export const getMembershipByUserIdController = async (req, res) => {
   try {
     const { userId } = req.params;
-    const membership = await findOrCreateMembershipService(userId);
+    const membership = await getMembershipByUserIdService(userId);
     res.status(200).json(membership);
   } catch (error) {
     res.status(500).json({ message: error.message });

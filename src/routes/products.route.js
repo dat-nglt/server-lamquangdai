@@ -7,12 +7,17 @@ import {
   getProductByIdController,
   updateProductController,
   deleteProductController,
+  getGroupedProductsController,
 } from "../controllers/products.controller.js"; // (Giả định đường dẫn)
 
 // 2. Khởi tạo router
 const routeForProduct = express.Router();
 
 // 3. Định nghĩa các routes
+
+// @route GET /api/products/grouped-by-brand
+// @desc Lấy sản phẩm đã nhóm theo thương hiệu
+routeForProduct.get("/grouped-by-brand", getGroupedProductsController);
 
 // @route POST /api/products
 // @desc Tạo sản phẩm mới

@@ -35,7 +35,10 @@ const calculateLevel = (points) => {
  * ----------------------------------------
  * Đây là hàm nội bộ quan trọng, đảm bảo user luôn có 1 bản ghi thành viên.
  */
-export const findOrCreateMembershipService = async (userId, transaction = null) => {
+export const findOrCreateMembershipService = async (
+  userId,
+  transaction = null
+) => {
   const [membership] = await Memberships.findOrCreate({
     where: { user_id: userId },
     defaults: {
@@ -98,12 +101,12 @@ export const getAllMembershipsService = async (queryParams) => {
 export const getMembershipByUserIdService = async (userId) => {
   try {
     // Dùng findOrCreate để nếu user mới chưa có sẽ tự tạo
-    const membership = await findOrCreateMembership(userId);
+    // const membership = await findOrCreateMembership(userId);
 
     // Lấy lại thông tin (hoặc load) kèm User
     const result = await Memberships.findOne({
       where: { user_id: userId },
-      include: [{ model: Users, attributes: ["email", "full_name"] }],
+      include: [{ model: Users }],
     });
 
     return result;

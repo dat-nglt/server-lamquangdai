@@ -1,4 +1,26 @@
-import { createProductService, deleteProductService, getAllProductsService, getProductByIdService, updateProductService } from "../services/product.service.js";
+import {
+  createProductService,
+  deleteProductService,
+  getAllProductsService,
+  getGroupedProductsByBrandService,
+  getProductByIdService,
+  updateProductService,
+} from "../services/product.service.js";
+
+/**
+ * ----------------------------------------
+ * CONTROLLER: LẤY SẢN PHẨM ĐÃ NHÓM THEO THƯƠNG HIỆU
+ * ----------------------------------------
+ */
+export const getGroupedProductsController = async (req, res) => {
+  try {
+    // Chỉ cần gọi service
+    const groupedProducts = await getGroupedProductsByBrandService();
+    res.status(200).json(groupedProducts);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
 
 /**
  * ----------------------------------------

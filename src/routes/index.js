@@ -10,9 +10,11 @@ import routeForProduct from "./products.route.js";
 import routeForPromotion from "./promotion.route.js";
 import routeForAdminVoucher from "./admin.vouchers.route.js";
 import routeForVoucher from "./vouchers.route.js";
+import routeForUser from "./users.route.js";
 
 const mainRouter = (server) => {
   server.use("/api/articles", routeForArticle);
+  server.use("/api/users", routeForUser);
   server.use("/api/brands", routeForBrand);
   server.use("/api/cart", routeForCart);
   server.use("/api/categories", routeForCategory);

@@ -5,9 +5,9 @@ import { randomUUID } from "crypto";
 /** @type {import('sequelize-cli').Migration} */
 export const up = async (queryInterface, Sequelize) => {
   // 1. Định nghĩa trước UUID cho các danh mục cha
-  const electronicsId = randomUUID();
-  const booksId = randomUUID();
-  const clothingId = randomUUID();
+  const residentialId = randomUUID(); // Điều hòa dân dụng
+  const commercialId = randomUUID(); // Điều hòa thương mại
+  const suppliesId = randomUUID(); // Vật tư, phụ kiện
 
   const now = new Date();
 
@@ -16,98 +16,122 @@ export const up = async (queryInterface, Sequelize) => {
     [
       // --- CẤP 1: DANH MỤC CHA ---
       {
-        category_id: electronicsId,
-        category_name: "Electronics",
-        description: "Các thiết bị điện tử, công nghệ và phụ kiện.",
+        category_id: residentialId,
+        category_name: "Điều Hoà Dân Dụng",
+        description:
+          "Các loại máy lạnh và giải pháp điều hòa cho gia đình, căn hộ.",
         parent_id: null,
         status: "active",
         created_at: now,
       },
       {
-        category_id: booksId,
-        category_name: "Books",
-        description: "Sách, tiểu thuyết, truyện tranh và sách giáo khoa.",
+        category_id: commercialId,
+        category_name: "Điều Hoà Thương Mại & Hệ Thống",
+        description:
+          "Giải pháp điều hòa công suất lớn cho văn phòng, tòa nhà, nhà xưởng.",
         parent_id: null,
         status: "active",
         created_at: now,
       },
       {
-        category_id: clothingId,
-        category_name: "Clothing",
-        description: "Quần áo cho nam, nữ và trẻ em.",
+        category_id: suppliesId,
+        category_name: "Vật Tư & Phụ Kiện Lạnh",
+        description: "Ống đồng, ga lạnh, bảo ôn và các vật tư lắp đặt.",
         parent_id: null,
-        status: "inactive",
+        status: "active",
         created_at: now,
-      },
+      }, // --- CẤP 2: CON CỦA 'Điều Hoà Dân Dụng' ---
 
-      // --- CẤP 2: DANH MỤC CON (Thuộc Electronics) ---
       {
         category_id: randomUUID(),
-        category_name: "Laptops",
-        description: "Máy tính xách tay và Ultrabooks.",
-        parent_id: electronicsId,
+        category_name: "Máy Lạnh Treo Tường",
+        description:
+          "Dòng máy lạnh 1-1 phổ biến nhất cho phòng ngủ, phòng khách.",
+        parent_id: residentialId,
         status: "active",
         created_at: now,
       },
       {
         category_id: randomUUID(),
-        category_name: "Smartphones",
-        description: "Điện thoại thông minh và phụ kiện.",
-        parent_id: electronicsId,
+        category_name: "Máy Lạnh Multi",
+        description:
+          "Hệ thống 1 dàn nóng kết nối nhiều dàn lạnh, tiết kiệm không gian.",
+        parent_id: residentialId,
         status: "active",
         created_at: now,
       },
+      {
+        category_id: randomUUID(),
+        category_name: "Máy Lạnh Tủ Đứng",
+        description:
+          "Máy lạnh dạng tủ, công suất lớn cho phòng khách rộng, sảnh.",
+        parent_id: residentialId,
+        status: "active",
+        created_at: now,
+      }, // --- CẤP 2: CON CỦA 'Điều Hoà Thương Mại & Hệ Thống' ---
 
-      // --- CÁC DANH MỤC ĐƯỢC BỔ SUNG ĐỂ SỬA LỖI ---
       {
         category_id: randomUUID(),
-        category_name: "TVs", // 👈 Bổ sung
-        description: "Tivi, Smart TV và phụ kiện.",
-        parent_id: electronicsId,
+        category_name: "Máy Lạnh Âm Trần (Cassette)",
+        description:
+          "Dàn lạnh lắp chìm vào trần, tỏa gió 4 hướng, thẩm mỹ cao.",
+        parent_id: commercialId,
         status: "active",
         created_at: now,
       },
       {
         category_id: randomUUID(),
-        category_name: "Headphones", // 👈 Bổ sung
-        description: "Tai nghe có dây, không dây và chống ồn.",
-        parent_id: electronicsId,
+        category_name: "Máy Lạnh Giấu Trần Nối Ống Gió",
+        description:
+          "Dàn lạnh hoàn toàn giấu trong trần, phân phối gió qua hệ thống ống gió.",
+        parent_id: commercialId,
         status: "active",
         created_at: now,
       },
       {
         category_id: randomUUID(),
-        category_name: "Air Conditioners", // 👈 Bổ sung
-        description: "Máy lạnh, điều hòa không khí.",
-        parent_id: electronicsId,
+        category_name: "Hệ Thống VRV / VRF",
+        description:
+          "Hệ thống điều hòa trung tâm công suất lớn, hiệu suất cao cho tòa nhà.",
+        parent_id: commercialId,
         status: "active",
         created_at: now,
       },
-      // --- KẾT THÚC BỔ SUNG ---
+      {
+        category_id: randomUUID(),
+        category_name: "Máy Lạnh Áp Trần",
+        description:
+          "Dàn lạnh gắn áp sát trần nhà, luồng gió mạnh, phù hợp cho sảnh, cửa hàng.",
+        parent_id: commercialId,
+        status: "active",
+        created_at: now,
+      }, // --- CẤP 2: CON CỦA 'Vật Tư & Phụ Kiện' ---
 
-      // --- CẤP 2: DANH MỤC CON (Thuộc Books) ---
       {
         category_id: randomUUID(),
-        category_name: "Fiction",
-        description: "Tiểu thuyết và truyện hư cấu.",
-        parent_id: booksId,
+        category_name: "Ống Đồng & Bảo Ôn",
+        description:
+          "Ống đồng, bảo ôn cách nhiệt, băng quấn cho đường ống gas.",
+        parent_id: suppliesId,
         status: "active",
         created_at: now,
       },
       {
         category_id: randomUUID(),
-        category_name: "Science",
-        description: "Sách về khoa học và tự nhiên.",
-        parent_id: booksId,
+        category_name: "Ga Lạnh",
+        description: "Các loại ga R32, R410A, R22...",
+        parent_id: suppliesId,
         status: "active",
         created_at: now,
       },
     ],
     {}
   );
+  console.log("✅ Seeded categories table with A/C categories");
 };
 
 export const down = async (queryInterface, Sequelize) => {
   // Xóa tất cả dữ liệu khỏi bảng 'categories'
   await queryInterface.bulkDelete("categories", null, {});
+  console.log("❌ Emptied categories table");
 };

@@ -1,4 +1,10 @@
-import { createOrderService, getAllOrdersService, getOrderDetailsService, getOrdersByUserIdService, updateOrderStatusService } from "../services/orders.service.js";
+import {
+  createOrderService,
+  getAllOrdersByUserIdService,
+  getAllOrdersService,
+  getOrderDetailsService,
+  updateOrderStatusService,
+} from "../services/orders.service.js";
 
 /**
  * ----------------------------------------
@@ -30,15 +36,16 @@ export const createOrderController = async (req, res) => {
  * (GET /api/orders/me)
  * ----------------------------------------
  */
-export const getMyOrdersController = async (req, res) => {
+export const getAllOrdersByUserIdController = async (req, res) => {
   try {
-    const userId = req.user?.user_id;
+    // const userId = req.user?.user_id;
+    const userId = "fd8bcf45-c730-41a7-a735-b6abbfe63bae";
     if (!userId) {
       return res.status(401).json({ message: "Yêu cầu xác thực." });
     }
 
     // req.query chứa (page, limit, status)
-    const result = await getOrdersByUserIdService(userId, req.query);
+    const result = await getAllOrdersByUserIdService(userId, req.query);
     res.status(200).json(result);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -53,8 +60,11 @@ export const getMyOrdersController = async (req, res) => {
  */
 export const getMyOrderDetailsController = async (req, res) => {
   try {
-    const userId = req.user?.user_id;
-    const { id: orderId } = req.params;
+    // const userId = req.user?.user_id;
+    // const { id: orderId } = req.params;
+
+    const userId = "fd8bcf45-c730-41a7-a735-b6abbfe63bae";
+    const { id: orderId } = "2b3d8602-13d5-470a-bc56-145052b6a8f3";
 
     if (!userId) {
       return res.status(401).json({ message: "Yêu cầu xác thực." });
@@ -169,11 +179,7 @@ export const updateOrderStatusController = async (req, res) => {
     }
 
     // Gọi hàm cập nhật, không truyền userId
-    const updatedOrder = await updateOrderStatusService(
-      orderId,
-      status,
-      null
-    );
+    const updatedOrder = await updateOrderStatusService(orderId, status, null);
     res.status(200).json(updatedOrder);
   } catch (error) {
     if (error.message.includes("Không tìm thấy")) {

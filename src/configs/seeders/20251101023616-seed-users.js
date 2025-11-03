@@ -1,62 +1,93 @@
+"use strict";
+
 import { v4 as uuidv4 } from "uuid";
-import bcryptjs from "bcryptjs"; // 👈 Cần import bcryptjs
+import bcryptjs from "bcryptjs";
 
 /** @type {import('sequelize-cli').Migration} */
 export const up = async (queryInterface, Sequelize) => {
   // --- BƯỚC 1: BĂM MẬT KHẨU ---
-  // Chúng ta sẽ dùng chung một mật khẩu "123456" cho tất cả user mẫu
-  // Bạn phải băm mật khẩu này trước khi chèn vào CSDL
   const salt = await bcryptjs.genSalt(10);
   const hashedPassword = await bcryptjs.hash("123456", salt);
 
-  console.log("Seeding users... (Default password for all: 123456)");
+  console.log("🔐 Seeding users... (Default password: 123456)");
 
-  // --- BƯỚC 2: TẠO DỮ LIỆU ---
+  // --- BƯỚC 2: TẠO DỮ LIỆU NGƯỜI DÙNG ---
   const usersData = [
-    // 1. Admin User
     {
-      user_id: uuidv4(), // Phải tự tạo UUID
+      user_id: uuidv4(),
+      zalo_id: null,
       full_name: "Admin User",
-      phone: "0123456789", // Phải là unique
+      phone: "0123456789",
       email: "admin@example.com",
-      password: hashedPassword, // 👈 Dùng mật khẩu đã băm
+      password: hashedPassword,
       address: "123 Admin Street, Ho Chi Minh City",
-      role: "admin", // 👈 Role Admin
-      created_at: new Date(), // Phải tự tạo ngày
+      avatar: null,
+      gender: "male",
+      date_of_birth: new Date("1990-01-01"),
+      role: "admin",
+      is_followed_oa: true,
+      last_login: new Date(),
+      login_method: "email",
+      zalo_user_info: null,
+      status: "active",
+      email_verified: true,
+      phone_verified: true,
+      created_at: new Date(),
+      updated_at: new Date(),
     },
-
-    // 2. Customer User 1
     {
       user_id: uuidv4(),
+      zalo_id: null,
       full_name: "Nguyễn Văn A",
-      phone: "0987654321", // Phải là unique
+      phone: "0987654321",
       email: "nguyenvana@example.com",
-      password: hashedPassword, // 👈 Dùng mật khẩu đã băm
+      password: hashedPassword,
       address: "456 Customer Avenue, Hanoi",
-      role: "customer", // 👈 Role Customer (mặc định)
+      avatar: null,
+      gender: "male",
+      date_of_birth: new Date("1995-06-15"),
+      role: "customer",
+      is_followed_oa: false,
+      last_login: null,
+      login_method: "email",
+      zalo_user_info: null,
+      status: "active",
+      email_verified: true,
+      phone_verified: false,
       created_at: new Date(),
+      updated_at: new Date(),
     },
-
-    // 3. Customer User 2 (không có địa chỉ)
     {
       user_id: uuidv4(),
+      zalo_id: null,
       full_name: "Trần Thị B",
-      phone: "0912345678", // Phải là unique
+      phone: "0912345678",
       email: "tranthib@example.com",
-      password: hashedPassword, // 👈 Dùng mật khẩu đã băm
-      address: null, // 👈 Thử giá trị null
+      password: hashedPassword,
+      address: null,
+      avatar: null,
+      gender: "female",
+      date_of_birth: new Date("1998-10-20"),
       role: "customer",
+      is_followed_oa: false,
+      last_login: null,
+      login_method: "email",
+      zalo_user_info: null,
+      status: "active",
+      email_verified: false,
+      phone_verified: false,
       created_at: new Date(),
+      updated_at: new Date(),
     },
   ];
 
   // --- BƯỚC 3: CHÈN DỮ LIỆU ---
   await queryInterface.bulkInsert("users", usersData, {});
-  console.log("✅ Seeded users table");
+  console.log("✅ Users seeded successfully!");
 };
 
+/** Xoá dữ liệu (rollback) */
 export const down = async (queryInterface, Sequelize) => {
-  // Xóa toàn bộ dữ liệu trong bảng 'users'
   await queryInterface.bulkDelete("users", null, {});
-  console.log("❌ Emptied users table");
+  console.log("❌ Users table data removed!");
 };

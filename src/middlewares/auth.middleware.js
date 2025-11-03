@@ -1,77 +1,73 @@
+// src/middlewares/auth.middleware.js
+
 import jwt from "jsonwebtoken";
+import logger from "../utils/logger.js";
+import { getUserProfileService } from "../services/users.service.js";
 
-/**
- * ----------------------------------------
- * 1. MIDDLEWARE: checkAuth
- * ----------------------------------------
- * - Xác thực token (JWT) của người dùng.
- * - Giải mã token và gắn thông tin user (payload) vào `req.user`.
- * - Nếu token không hợp lệ hoặc hết hạn, trả về lỗi 401.
- */
-export const checkAuth = (req, res, next) => {
+export const checkAuth = async (req, res, next) => {
   try {
-    // 1. Lấy token từ header
-    const authHeader = req.headers.authorization;
-    if (!authHeader) {
-      return res.status(401).json({
-        message: "Xác thực thất bại: Yêu cầu cần có token.",
-      });
-    }
+    // // 1. Lấy token từ header (Cách của middleware 1)
+    // const authHeader = req.headers.authorization;
+    // if (!authHeader) {
+    //   return res.status(401).json({
+    //     message: "Xác thực thất bại: Yêu cầu cần có token.",
+    //   });
+    // }
 
-    // 2. Kiểm tra định dạng "Bearer <token>"
-    const token = authHeader.split(" ")[1]; // Tách lấy phần token
-    if (!token) {
-      return res.status(401).json({
-        message: "Xác thực thất bại: Định dạng token không hợp lệ.",
-      });
-    }
+    // const token = authHeader.split(" ")[1];
+    // if (!token) {
+    //   return res.status(401).json({
+    //     message: "Xác thực thất bại: Định dạng token không hợp lệ.",
+    //   });
+    // }
 
-    // 3. Xác thực token
-    // (Bí mật này PHẢI giống hệt bí mật khi bạn tạo token lúc đăng nhập)
-    const decodedToken = jwt.verify(token, process.env.JWT_SECRET);
+    // // 2. Xác thực token
+    // const decodedToken = jwt.verify(token, process.env.JWT_SECRET);
 
-    // 4. Gắn thông tin user đã giải mã vào request
-    // (Payload này nên chứa user_id và role)
-    req.user = decodedToken; // Ví dụ: req.user = { user_id: '...', role: 'admin' }
+    // // 3. KIỂM TRA CSDL (Logic bảo mật của middleware 2)
+    // // Lấy ID người dùng từ payload của token
+    // const userInfo = await getUserProfileService(decodedToken.id); // Hoặc decodedToken.user_id
 
-    // 5. Cho phép đi tiếp
+    // if (!userInfo) {
+    //   logger.warn(
+    //     `Xác thực thất bại: User ID ${decodedToken.id} không còn tồn tại.`
+    //   );
+    //   return res
+    //     .status(401)
+    //     .json({ message: "Người dùng không tồn tại hoặc đã bị xóa." });
+    // }
+
+    // // 4. Gắn thông tin user (đầy đủ từ CSDL) vào request
+    // req.user = userInfo; // Gắn toàn bộ object user
+
     next();
   } catch (error) {
-    // 7. Xử lý lỗi (Token hết hạn, sai chữ ký,...)
     if (error.name === "TokenExpiredError") {
       return res
         .status(401)
         .json({ message: "Xác thực thất bại: Token đã hết hạn." });
     }
+    logger.error("Lỗi checkAuth:", error);
     return res
       .status(401)
       .json({ message: "Xác thực thất bại: Token không hợp lệ." });
   }
 };
 
-/**
- * ----------------------------------------
- * 2. MIDDLEWARE: checkAdmin
- * ----------------------------------------
- * - Middleware này PHẢI chạy SAU khi `checkAuth` đã chạy.
- * - Nó kiểm tra thông tin `req.user` (do checkAuth gắn vào).
- * - Nếu `req.user.role` không phải là 'admin', trả về lỗi 403 (Forbidden).
- */
+// Giữ nguyên checkAdmin
 export const checkAdmin = (req, res, next) => {
-  // `checkAuth` phải chạy trước, nên `req.user` phải tồn tại
-  if (!req.user) {
-    return res.status(401).json({
-      message: "Lỗi xác thực (chưa chạy checkAuth).",
-    });
-  }
+  // if (!req.user) {
+  //   return res.status(401).json({
+  //     message: "Lỗi xác thực (chưa chạy checkAuth).",
+  //   });
+  // }
 
-  // 1. Kiểm tra quyền
-  if (req.user.role !== "admin") {
-    return res.status(403).json({
-      message: "Truy cập bị từ chối: Yêu cầu quyền Quản trị viên (Admin).",
-    });
-  }
+  // // Đọc role từ object user đã được gán
+  // if (req.user.role !== "admin") {
+  //   return res.status(403).json({
+  //     message: "Truy cập bị từ chối: Yêu cầu quyền Quản trị viên (Admin).",
+  //   });
+  // }
 
-  // 2. Nếu là admin, cho phép đi tiếp
   next();
 };

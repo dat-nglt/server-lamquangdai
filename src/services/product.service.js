@@ -6,6 +6,77 @@ import db from "../models/index.js";
 // Import tất cả model cần thiết
 const { Products, Brands, Categories, OrderDetails } = db;
 
+const formatPrice = (priceString) => {
+  if (!priceString) return "Liên hệ"; // Xử lý giá null hoặc rỗng
+  const number = parseFloat(priceString);
+  if (isNaN(number)) return "Liên hệ";
+
+  // Sử dụng Intl.NumberFormat để tạo chuỗi "13.700.000"
+  const formattedNumber = new Intl.NumberFormat("vi-VN").format(number);
+  return `${formattedNumber} đ`;
+};
+
+export const getGroupedProductsByBrandService = async () => {
+  try {
+    // 1. Lấy tất cả sản phẩm đang 'active'
+    // Bao gồm cả thông tin "Brand" liên quan
+    const allProducts = await Products.findAll({
+      // where: {
+      //   status: "active",
+      // },
+      // Lấy kèm thông tin thương hiệu (chỉ lấy brand_name)
+      include: [
+        {
+          model: Brands,
+          attributes: ["brand_name"],
+          required: true, // Đảm bảo chỉ lấy SP có thương hiệu (INNER JOIN)
+        },
+      ],
+      // Chỉ lấy các trường cần thiết từ Product
+      attributes: ["product_id", "product_name", "price", "image_url"],
+      order: [["created_at", "DESC"]],
+    });
+
+    // 2. Nhóm các sản phẩm lại bằng hàm reduce
+    const groupedProducts = allProducts.reduce((acc, product) => {
+      // Lấy key: ví dụ "Daikin" -> "daikin"
+      // (Thêm ? để tránh lỗi nếu product.Brand bị null)
+      const brandKey = product.Brand?.brand_name.toLowerCase();
+
+      // Nếu không có key (bị lỗi) thì bỏ qua
+      if (!brandKey) {
+        return acc;
+      }
+
+      // 3. Tạo đối tượng sản phẩm đơn giản (theo cấu trúc bạn muốn)
+      const simplifiedProduct = {
+        product_id: product.product_id,
+        product_name: product.product_name,
+        price: formatPrice(product.price), // Định dạng giá
+        image_url: product.image_url,
+      };
+
+      // 4. Thêm vào mảng của key
+      // Nếu key (ví dụ: "daikin") chưa có, tạo mảng rỗng
+      if (!acc[brandKey]) {
+        acc[brandKey] = [];
+      }
+
+      // Đẩy sản phẩm vào mảng
+      acc[brandKey].push(simplifiedProduct);
+
+      // Trả về đối tượng đã cập nhật
+      return acc;
+    }, {}); // Bắt đầu với một đối tượng rỗng {}
+
+    return groupedProducts;
+  } catch (error) {
+    throw new Error(
+      `Không thể lấy danh sách sản phẩm theo nhóm: ${error.message}`
+    );
+  }
+};
+
 /**
  * ----------------------------------------
  * SERVICE: TẠO MỚI SẢN PHẨM

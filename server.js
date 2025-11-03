@@ -29,7 +29,7 @@ async function startServer() {
     app.use(
       rateLimit({
         windowMs: 15 * 60 * 1000,
-        max: 200,
+        max: 100000,
         message: { error: "Quá nhiều yêu cầu, vui lòng thử lại sau." },
         standardHeaders: true,
         legacyHeaders: false,
@@ -38,7 +38,7 @@ async function startServer() {
     app.use(compression());
     const allowedOrigins = ["https://mini.zalo.me", "https://zmini.me"];
     if (process.env.NODE_ENV === "development") {
-      allowedOrigins.push("http://localhost:3000"); // Cho phép localhost dev
+      allowedOrigins.push("http://localhost:3001"); // Cho phép localhost dev
     }
     const corsOptions = {
       origin: (origin, callback) => {

@@ -133,25 +133,45 @@ export const createOrderService = async (userId, orderData) => {
  * SERVICE: LẤY LỊCH SỬ ĐƠN HÀNG (CHO USER)
  * ----------------------------------------
  */
-export const getOrdersByUserIdService = async (userId, queryParams) => {
+export const getAllOrdersByUserIdService = async (userId, queryParams) => {
   const { page = 1, limit = 10, status } = queryParams;
-  const offset = (page - 1) * limit;
-  const whereClause = { user_id: userId };
+  const parsedLimit = parseInt(limit, 10) || 10;
+  const parsedPage = parseInt(page, 10) || 1;
+  const offset = (parsedPage - 1) * parsedLimit;
 
+  const whereClause = { user_id: userId };
   if (status) whereClause.status = status;
 
   try {
     const { count, rows } = await Orders.findAndCountAll({
       where: whereClause,
+      include: [
+        {
+          // Cấp 1: Lấy các chi tiết đơn hàng
+          model: OrderDetails,
+          as: "OrderDetails", // Alias này phải khớp với model 'Orders'
+          attributes: ["quantity", "unit_price"], // Chỉ lấy các cột cần thiết từ OrderDetails
+
+          // Cấp 2: Lồng thông tin sản phẩm vào mỗi chi tiết
+          include: [
+            {
+              model: Products,
+              as: "Product", // <--- Alias này phải khớp với model 'OrderDetails'
+              attributes: ["product_name", "image_url", "product_id"], // Chỉ lấy các cột cần thiết từ Products
+            },
+          ],
+        },
+      ],
       order: [["order_date", "DESC"]],
-      limit: parseInt(limit),
+      limit: parsedLimit,
       offset: offset,
+      distinct: true, // Rất quan trọng để 'count' đếm đúng số lượng Orders
     });
 
     return {
       totalItems: count,
-      totalPages: Math.ceil(count / limit),
-      currentPage: parseInt(page),
+      totalPages: Math.ceil(count / parsedLimit),
+      currentPage: parsedPage,
       orders: rows,
     };
   } catch (error) {
@@ -197,8 +217,10 @@ export const getAllOrdersService = async (queryParams) => {
  * SERVICE: LẤY CHI TIẾT 1 ĐƠN HÀNG
  * ----------------------------------------
  */
-export const getOrderDetailsService = async (orderId, userId = null) => {
+export const getOrderDetailsService = async (orderId = "2b3d8602-13d5-470a-bc56-145052b6a8f3", userId = "fd8bcf45-c730-41a7-a735-b6abbfe63bae") => {
   try {
+    console.log(orderId);
+    
     const whereClause = { order_id: orderId };
 
     // Nếu userId được cung cấp (user đang xem),

@@ -3,9 +3,9 @@ import express from "express";
 // 1. Import các controller của USER
 import {
   createOrderController,
-  getMyOrdersController,
   getMyOrderDetailsController,
   cancelMyOrderController,
+  getAllOrdersByUserIdController,
 } from "../controllers/orders.controller.js"; // (Giả định đường dẫn)
 
 // 2. Import middleware xác thực (BẮT BUỘC)
@@ -26,11 +26,11 @@ routeForOrder.post("/", createOrderController);
 
 // @route GET /api/orders/me
 // @desc (User) Lấy lịch sử đơn hàng CỦA TÔI
-routeForOrder.get("/me", getMyOrdersController);
+routeForOrder.get("/:id", getAllOrdersByUserIdController);
 
 // @route GET /api/orders/me/:id
 // @desc (User) Lấy chi tiết đơn hàng CỦA TÔI
-routeForOrder.get("/me/:id", getMyOrderDetailsController);
+routeForOrder.get("/details/:id", getMyOrderDetailsController);
 
 // @route PATCH /api/orders/me/:id/cancel
 // @desc (User) Tự huỷ đơn hàng
