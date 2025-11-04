@@ -109,7 +109,7 @@ async function startServer() {
       );
     });
   } catch (error) {
-    logger.error("Lỗi nghiêm trọng khi khởi động server:", error);
+    logger.error("Lỗi nghiêm trọng khi khởi động server:", error.message);
     process.exit(1); // Thoát tiến trình nếu khởi động thất bại
   }
 }
