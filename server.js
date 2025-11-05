@@ -46,19 +46,28 @@ async function startServer() {
       allowedOrigins.push("http://localhost:3001"); // Cho phép localhost dev
     }
 
+    // ... (code allowedOrigins và regex giữ nguyên) ...
+
     const corsOptions = {
       origin: (origin, callback) => {
+        // --- DÒNG DEBUG QUAN TRỌNG ---
+        // Log này sẽ cho bạn biết CHÍNH XÁC tên miền nào đang cố gắng gọi vào
+        console.log("CORS CHECK - INCOMING ORIGIN:", origin);
+        // ----------------------------
+
         if (!origin || allowedOrigins.includes(origin)) {
           callback(null, true);
         } else if (origin && zaloMiniAppRegex.test(origin)) {
           callback(null, true);
         } else {
+          // Nếu một origin bị chặn, nó sẽ được log ra ở dòng trên
           callback(new Error("Not allowed by CORS"));
         }
       },
       methods: ["GET", "POST", "PUT", "DELETE"],
       allowedHeaders: ["Content-Type", "Authorization"],
     };
+
     app.use(cors(corsOptions));
 
     // --- CẤU HÌNH PARSER & LOGGING ---
