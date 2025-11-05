@@ -37,12 +37,10 @@ async function startServer() {
     );
     app.use(compression());
     const allowedOrigins = [
-      "https://mini.zalo.me",
-      "https://zmini.me",
       "https://lamquangdai.vn",
       "https://www.lamquangdai.vn",
-      "https://empty-donkey-98.mini.123c.vn", // <-- BẮT BUỘC THÊM CÁI NÀY
     ];
+    const zaloMiniAppRegex = /^https:\/\/([a-z0-9-]+\.)*mini\.123c\.vn$/;
 
     if (process.env.NODE_ENV === "development") {
       allowedOrigins.push("http://localhost:3001"); // Cho phép localhost dev
@@ -51,6 +49,8 @@ async function startServer() {
     const corsOptions = {
       origin: (origin, callback) => {
         if (!origin || allowedOrigins.includes(origin)) {
+          callback(null, true);
+        } else if (origin && zaloMiniAppRegex.test(origin)) {
           callback(null, true);
         } else {
           callback(new Error("Not allowed by CORS"));
