@@ -11,6 +11,7 @@ import routeForPromotion from "./promotion.route.js";
 import routeForAdminVoucher from "./admin.vouchers.route.js";
 import routeForVoucher from "./vouchers.route.js";
 import routeForUser from "./users.route.js";
+import routeForWebhook from "./zalo.webhook.route.js";
 
 const mainRouter = (server) => {
   server.use("/api/articles", routeForArticle);
@@ -25,6 +26,7 @@ const mainRouter = (server) => {
   server.use("/api/promotions", routeForPromotion);
   server.use("/api/admin/voucher", routeForAdminVoucher);
   server.use("/api/voucher", routeForVoucher);
+  server.use("/zalo/webhook", routeForWebhook);
 };
 
 export default mainRouter;
