@@ -41,6 +41,7 @@ async function startServer() {
       "https://zmini.me",
       "https://lamquangdai.vn",
       "https://www.lamquangdai.vn",
+      "https://empty-donkey-98.mini.123c.vn", // <-- BẮT BUỘC THÊM CÁI NÀY
     ];
 
     if (process.env.NODE_ENV === "development") {
