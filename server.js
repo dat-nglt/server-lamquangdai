@@ -39,7 +39,7 @@ async function startServer() {
     const allowedOrigins = [
       "https://lamquangdai.vn",
       "https://www.lamquangdai.vn",
-      "httpsS://h5.zdn.vn",
+      "https://h5.zdn.vn",
     ];
     const zaloMiniAppRegex = /^https:\/\/([a-z0-9-]+\.)*mini\.123c\.vn$/;
 
