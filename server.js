@@ -36,10 +36,17 @@ async function startServer() {
       })
     );
     app.use(compression());
-    const allowedOrigins = ["https://mini.zalo.me", "https://zmini.me"];
+    const allowedOrigins = [
+      "https://mini.zalo.me",
+      "https://zmini.me",
+      "https://lamquangdai.vn",
+      "https://www.lamquangdai.vn",
+    ];
+
     if (process.env.NODE_ENV === "development") {
       allowedOrigins.push("http://localhost:3001"); // Cho phép localhost dev
     }
+
     const corsOptions = {
       origin: (origin, callback) => {
         if (!origin || allowedOrigins.includes(origin)) {
