@@ -2,7 +2,7 @@ import {
   getAllMessageByUserIdService,
   getAllRecentlyMessageService,
   sentMessageForUserByIdService,
-} from "../services/chatbox.service";
+} from "../services/chatbox.service.js";
 
 /**
  * Lấy danh sách hội thoại gần đây

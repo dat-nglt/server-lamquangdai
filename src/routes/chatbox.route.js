@@ -3,7 +3,7 @@ import {
   getAllMessageByUserIdController,
   sentMessageForUserByIdController,
   getAllRecentlyMessageController,
-} from "../controllers/chatbox.controller";
+} from "../controllers/chatbox.controller.js";
 
 const routeForChatbox = express.Router();
 
