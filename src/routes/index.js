@@ -12,6 +12,7 @@ import routeForAdminVoucher from "./admin.vouchers.route.js";
 import routeForVoucher from "./vouchers.route.js";
 import routeForUser from "./users.route.js";
 import routeForWebhook from "./zalo.webhook.route.js";
+import routeForChatbox from "./chatbox.route.js";
 
 const mainRouter = (server) => {
   server.use("/api/articles", routeForArticle);
@@ -27,6 +28,7 @@ const mainRouter = (server) => {
   server.use("/api/admin/voucher", routeForAdminVoucher);
   server.use("/api/voucher", routeForVoucher);
   server.use("/zalo/webhook", routeForWebhook);
+  server.use("/zalo-chatbox", routeForChatbox);
 };
 
 export default mainRouter;
