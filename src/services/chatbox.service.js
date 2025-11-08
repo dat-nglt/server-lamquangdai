@@ -3,7 +3,7 @@ import axios from "axios";
 // Nên lưu trữ token trong biến môi trường (process.env.ZALO_ACCESS_TOKEN)
 // Để đơn giản, chúng ta tạm hardcode (KHÔNG KHUYẾN KHÍCH TRONG PRODUCTION)
 const ACCESS_TOKEN =
-  "T-Rt0ntYgsjsv_KC6EsXQdRf_00JzTDgA9ZyGXEPetrtmlvoHPduIqdVeI1UhguaPVUQJb_rptrmjUDR6jZCGYE5wLCD_UvqOQhMOstyusLa_j5tLRNgNKItm4KlyULSGep1Hr7Vt7yuW-903VRYVGkkvaqkpyH4GOxlSMxEj1jcfk0HM_hg9sQmp4vRiizYCVdF30IizY9khgi-1U-F3m6Rj3SpdBKG1ShjFYlAxL8laDeu6PNGBIxI-XujYzOmC8dk6rJjoJmnc-WqMztN6cw8-n9Rt_9wRe3P4GNzqI0JlUvF8iUmH16Ov6nytxj2Q9okUcI3cL1WyxmuMAAr0d3dx6vDeTHA9yEFUokVZcTF_e1LPgQhErmoRLuV-gjh"; // Thay bằng token thật của bạn
+  "C7RsVg9446WnT_HnfqiQQJ5v_NsiKsamJ0VyHw5G60Pi98OIhafeS6W-YHkg3mXBPsQz6lPRB0uQ3BHf-sfKE1nQi5JL5LOU24UoNUzsKnmR1UbJzsGFEsCqxoYEGtriKohxUwzcQY9OFOqnhtKCI3uUX2RyUm5CEaQS9CWc7pGDOFyXqoXxHJ14vo_wB78x4atwAF4-Q3mxNeOh-mvZHcfV-Z-13cPgH7FsAAmxTtjYUjW_g2TQKZr6kaBV2bqgIah9POW9BW1ZMy1DiWWl2czsrLYDH5Gl4JhcQvXlU7848vaQaqiAGreSfmIiBaTURrsf98OsHdLN2-LakK5aB7Xn_7s33nisQs-zGQrVAGSy0uH_rLC74mWQjdlwQY8BB0oySy9TMnLI8FjpnKDdOYPpnGjXSgG4ro2WN11e";
 const ZALO_API_BASE_URL = "https://openapi.zalo.me";
 
 /**
