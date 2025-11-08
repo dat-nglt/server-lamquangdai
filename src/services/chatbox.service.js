@@ -2,7 +2,8 @@ import axios from "axios";
 
 // Nên lưu trữ token trong biến môi trường (process.env.ZALO_ACCESS_TOKEN)
 // Để đơn giản, chúng ta tạm hardcode (KHÔNG KHUYẾN KHÍCH TRONG PRODUCTION)
-const ACCESS_TOKEN = "<your_access_token>"; // Thay bằng token thật của bạn
+const ACCESS_TOKEN =
+  "QdfC0RyYUdvhUquEkYrmVsjrHmAnDJO376b-Vz9nGLW2VGXxrKbPH5Xo6MlLLcbMUb07VDftTrTx8I0fqNeMB6Xi9mc_KNCVDGys4xCRM6mOGW1LbNzjSZT-A0kW9HaX0cP80jHZ321uRqqus7CuGGjdO4IQRmjK5LP0Hu902bGWSJvqkLXiKGv0ALccHbzQT442SlLYObLnGIfHf5eVL0v-L5A8OsPZB6yt4_fNGIXXUpnHxtmAL5rwIKoJMHmm4LvB7yTMD2v1UNK5qLaX1q5sT0oNAp1yHNOFPCGkK1zWSJKb-bn88bXyTXZo8IHZSWnmQAHF8bG4L6XDqay4Ia1aT776RIH922uLRxiwONCNPIX3ipzzNUDk1qczEdf-"; // Thay bằng token thật của bạn
 const ZALO_API_BASE_URL = "https://openapi.zalo.me";
 
 /**
