@@ -11,37 +11,28 @@ const ZALO_API_BASE_URL = "https://openapi.zalo.me";
  * API: /v2.0/oa/listrecentchat
  */
 export const getAllRecentlyMessageService = async (offset = 0, count = 5) => {
-  // Đảm bảo count không vượt quá 10 (theo tài liệu)
   const validCount = Math.min(Number(count) || 5, 10);
   const validOffset = Number(offset) || 0;
 
   const url = `${ZALO_API_BASE_URL}/v2.0/oa/listrecentchat`;
 
-  const params = {
-    data: JSON.stringify({
-      offset: validOffset,
-      count: validCount,
-    }),
-  };
-
-  const headers = {
-    access_token: ACCESS_TOKEN,
-  };
-
   try {
-    const response = await axios.get(url, { params, headers });
-    // Trả về dữ liệu từ Zalo
+    const response = await axios.get(url, {
+      headers: {
+        access_token: ACCESS_TOKEN,
+      },
+      params: {
+        data: JSON.stringify({
+          offset: validOffset,
+          count: validCount,
+        }),
+      },
+    });
+
     return response.data;
   } catch (error) {
-    // Ghi lại lỗi chi tiết từ Zalo
-    console.error(
-      "Zalo API Error (getAllRecentlyMessageService):",
-      error.response?.data
-    );
-    // Ném lỗi để controller bắt
-    throw new Error(
-      error.response?.data?.message || "Failed to fetch recent chats"
-    );
+    console.error("Zalo API Error:", error.response?.data || error.message);
+    throw error;
   }
 };
 
