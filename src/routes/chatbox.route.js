@@ -16,6 +16,4 @@ routeForChatbox.post("/:id", sentMessageForUserByIdController);
 
 routeForChatbox.post("/gemeni-chat", createChatSessionController);
 
-createChatSessionController;
-
 export default routeForChatbox;
