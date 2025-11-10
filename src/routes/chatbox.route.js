@@ -12,8 +12,8 @@ routeForChatbox.get("/recently-message", getAllRecentlyMessageController);
 
 routeForChatbox.get("/:id", getAllMessageByUserIdController);
 
-routeForChatbox.post("/:id", sentMessageForUserByIdController);
-
 routeForChatbox.post("/gemeni-chat", createChatSessionController);
+
+routeForChatbox.post("/:id", sentMessageForUserByIdController);
 
 export default routeForChatbox;

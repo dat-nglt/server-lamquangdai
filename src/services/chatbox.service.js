@@ -1,4 +1,5 @@
 import axios from "axios";
+import { handleChatService } from "./gemini.service.js";
 
 // Nên lưu trữ token trong biến môi trường (process.env.ZALO_ACCESS_TOKEN)
 // Để đơn giản, chúng ta tạm hardcode (KHÔNG KHUYẾN KHÍCH TRONG PRODUCTION)
@@ -89,8 +90,13 @@ export const getAllMessageByUserIdService = async (
  * Gọi API Zalo: Gửi tin nhắn tư vấn (CS) cho người dùng
  * API: /v3.0/oa/message/cs
  */
-export const sentMessageForUserByIdService = async (userId, textMessage) => {
-  if (!userId || !textMessage) {
+export const sentMessageForUserByIdService = async (
+  userId,
+  messageFromUser
+) => {
+  // const messageFromUser = getAllMessageByUserIdService();
+  const messageFromAI = handleChatService(messageFromUser, userId);
+  if (!userId || !messageFromAI) {
     throw new Error("User ID and text message are required");
   }
 
@@ -101,7 +107,7 @@ export const sentMessageForUserByIdService = async (userId, textMessage) => {
       user_id: userId,
     },
     message: {
-      text: textMessage,
+      text: messageFromAI,
     },
   };
 

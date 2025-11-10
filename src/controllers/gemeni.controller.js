@@ -2,8 +2,6 @@ import { handleChatService } from "../services/gemini.service.js";
 
 export const createChatSessionController = async (req, res) => {
   try {
-    console.log(req.body);
-
     // Lấy cả userMessage và userId từ body
     const { userMessage, userId } = req.body;
 

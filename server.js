@@ -120,7 +120,7 @@ async function startServer() {
     });
 
     // --- KHỞI ĐỘNG SERVER ---
-    const PORT = process.env.PORT || 8080;
+    const PORT = process.env.PORT || 3000;
     server.listen(PORT, () => {
       logger.info(
         `Server đang chạy tại cổng ${PORT} [${process.env.NODE_ENV}]`

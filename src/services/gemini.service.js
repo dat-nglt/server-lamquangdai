@@ -1,4 +1,9 @@
-// ... (Tất cả import và thiết lập API_KEY, ai) ...
+import { GoogleGenAI } from "@google/genai";
+import { SYSTEM_INSTRUCTION } from "../promts/contact.js";
+const API_KEY = process.env.API_KEY;
+const ai = new GoogleGenAI({
+  apiKey: "AIzaSyBAgHEF6i2FubocxwmVA692CzMZf3MIchM",
+});
 
 export const createChatSessionService = () => {
   const chat = ai.chats.create({
@@ -40,5 +45,5 @@ export const handleChatService = async (userMessage, userId) => {
   const chatSession = getOrCreateChatSession(userId); // 2. Gửi tin nhắn vào session đó
 
   const response = await chatSession.sendMessage({ message: userMessage });
-  return response;
+  return response.candidates[0].content.parts[0].text;
 };

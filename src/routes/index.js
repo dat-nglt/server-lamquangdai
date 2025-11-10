@@ -1,4 +1,3 @@
-import express from "express";
 import routeForArticle from "./article.route.js";
 import routeForBrand from "./brands.route.js";
 import routeForCart from "./cart.route.js";
@@ -28,7 +27,7 @@ const mainRouter = (server) => {
   server.use("/api/admin/voucher", routeForAdminVoucher);
   server.use("/api/voucher", routeForVoucher);
   server.use("/zalo/webhook", routeForWebhook);
-  server.use("/zalo-chatbox", routeForChatbox);
+  server.use("/zalo/chatbox", routeForChatbox);
 };
 
 export default mainRouter;
