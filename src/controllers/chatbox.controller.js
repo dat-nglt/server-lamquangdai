@@ -57,7 +57,7 @@ export const sentMessageForUserByIdController = async (req, res) => {
     // Lấy nội dung tin nhắn từ body
     const { text } = req.body;
 
-    if (!text) {
+      if (!text) {
       return res
         .status(400)
         .json({ message: "Text message is required in body" });

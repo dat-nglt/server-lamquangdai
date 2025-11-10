@@ -4,7 +4,7 @@ export const webhookController = async (req, res) => {
   if (data.event_name === "user_send_text") {
     const message = data.message.text;
     const sender_id = data.sender.id;
-
+    sentMessageForUserByIdService(sender_id, "Phản hồi từ máy chủ của Nguyễn Lê Tấn Đạt")
     console.log(message, sender_id);
   }
   return;
