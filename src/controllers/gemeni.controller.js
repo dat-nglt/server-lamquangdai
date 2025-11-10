@@ -1,4 +1,4 @@
-import { handleChatService } from "../services/geminiService";
+import { handleChatService } from "../services/gemini.service.js";
 
 export const createChatSessionController = async (req, res) => {
   try {

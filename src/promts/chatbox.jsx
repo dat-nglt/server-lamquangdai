@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { createChatSession } from '../services/geminiService';
+import { createChatSession } from '../services/gemini.service';
 
 const MessageSender = {
   USER: 'user',
