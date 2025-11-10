@@ -1,5 +1,4 @@
 import axios from "axios";
-import { handleChatService } from "./gemini.service.js";
 import { GoogleGenAI } from "@google/genai";
 import { SYSTEM_INSTRUCTION } from "../promts/contact.js";
 import { extractPhoneNumber } from "../utils/extractPhoneNumber.js";
