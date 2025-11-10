@@ -94,11 +94,13 @@ export const sentMessageForUserByIdService = async (
   userId,
   messageFromUser
 ) => {
-  // const messageFromUser = getAllMessageByUserIdService();
-  const messageFromAI = handleChatService(messageFromUser, userId);
+  console.log(`Tin nhắn từ người dùng: ${messageFromUser}`);
+  const messageFromAI = await handleChatService(messageFromUser, userId);
   if (!userId || !messageFromAI) {
     throw new Error("User ID and text message are required");
   }
+
+  console.log(`Tin nhắn từ tư vấn viên AI: ${messageFromAI}`);
 
   const url = `${ZALO_API_BASE_URL}/v3.0/oa/message/cs`;
 

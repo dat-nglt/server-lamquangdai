@@ -6,8 +6,7 @@ export const webhookController = async (req, res) => {
   if (data.event_name === "user_send_text") {
     const messageFromUser = data.message.text;
     const sender_id = data.sender.id;
-    sentMessageForUserByIdService(sender_id, messageFromUser);
-    console.log(message, sender_id);
+    await sentMessageForUserByIdService(sender_id, messageFromUser);
   }
   return;
 };
