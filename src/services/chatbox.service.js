@@ -107,7 +107,10 @@ export const sentMessageForUserByIdService = async (
       user_id: userId,
     },
     message: {
-      text: messageFromAI,
+      text:
+        messageFromAI == {}
+          ? messageFromAI
+          : "AI trả về kết quả rỗng, kiểm tra lại",
     },
   };
 
