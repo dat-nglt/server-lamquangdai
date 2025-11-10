@@ -5,7 +5,6 @@ import {
   getAllRecentlyMessageController,
   createChatSessionController,
 } from "../controllers/chatbox.controller.js";
-import { createChatSessionController } from "../controllers/gemeni.controller.js";
 
 const routeForChatbox = express.Router();
 
