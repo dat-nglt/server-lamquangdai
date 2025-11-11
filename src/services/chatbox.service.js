@@ -102,21 +102,15 @@ export const analyzeUserMessageService = async (
 
   // 4️⃣ Gửi yêu cầu đến AI và xử lý kết quả
   const response = await chat.sendMessage({ message: prompt });
-  const text =
+  const textMessage =
     response?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || null;
 
-  if (!text) {
+  if (!textMessage) {
     console.warn(`[AI] ⚠️ Phản hồi rỗng cho user`);
     return { error: "Không đủ dữ liệu để phân tích" };
   }
 
-  try {
-    return JSON.parse(text);
-  } catch (err) {
-    console.error("❌ Lỗi parse JSON từ AI:", text);
-    // Fallback: nếu AI trả về không đúng định dạng JSON
-    return { raw: text };
-  }
+  return textMessage;
 };
 
 const chatSessions = new Map();
