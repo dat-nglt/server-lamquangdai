@@ -224,6 +224,8 @@ export const sentMessageForUserByIdService = async (
       if (response.message === "Success") {
         console.log("Đã báo thông tin khách hàng đến Lead");
       }
+    } else {
+      console.log('Chưa đầy đủ thông tin');
     }
     console.log(`Số điện thoại: ${jsonData.soDienThoai}`);
     console.log(`Nhu cầu: ${jsonData.nhuCau}`);
