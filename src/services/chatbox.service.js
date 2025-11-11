@@ -182,12 +182,12 @@ export const sentMessageForUserByIdService = async (
     throw new Error("UID and Text message are required");
   }
 
-  const analyzeUserMessageResult = analyzeUserMessageService(
+  const analyzeUserMessageResult = await analyzeUserMessageService(
     messageFromUser,
     []
   );
 
-  console.log(`analyzeUserMessageService: ${analyzeUserMessageService}`);
+  console.log(`analyzeUserMessageService: ${analyzeUserMessageResult}`);
 
   console.log(`UID [${userId}]: ${messageFromUser}`);
 
