@@ -31,73 +31,95 @@ export const createChatSessionService = () => {
   return chat;
 };
 
-// export const analyzeUserMessageService = async (
-//   message,
-//   phoneInfo = "",
-//   conversationHistory = []
-// ) => {
-//   const chat = ai.chats.create({
-//     model: "gemini-2.5-flash",
-//     config: {
-//       systemInstruction: `
-//         Bạn là trợ lý phân tích hội thoại thông minh cho doanh nghiệp.
-//         Nhiệm vụ:
-//         - Hiểu ngữ cảnh hội thoại giữa người dùng và hệ thống.
-//         - Bóc tách thông tin quan trọng từ tin nhắn mới nhất của người dùng.
-//         - Đánh giá mức độ quan tâm của người dùng đối với sản phẩm/dịch vụ.
-//         - Xác định xem cuộc hội thoại đã đủ thông tin để tổng hợp hay chưa (nghĩa là người dùng đã cung cấp đủ dữ kiện để lập báo cáo, đơn hàng hoặc tóm tắt nhu cầu).
+export const analyzeUserMessageService = async (
+  messageFromUser,
+  conversationHistory = []
+) => {
+  // 1️⃣ Tự động trích xuất số điện thoại từ tin nhắn người dùng
+  const phoneNumbers = extractPhoneNumber(messageFromUser);
+  let phoneInfo = null;
 
-//         Hướng dẫn chi tiết:
-//         1️⃣ "nhuCau": Tóm tắt ngắn gọn nhu cầu hoặc yêu cầu chính (ví dụ: hỏi giá, đặt hàng, yêu cầu hỗ trợ, phản ánh, v.v.).
-//         2️⃣ "soDienThoai": Lấy từ tin nhắn hoặc dữ liệu sẵn có (phoneInfo). Nếu không có thì để null.
-//         3️⃣ "mucDoQuanTam":
-//             - "Cao": Khi người dùng có hành động rõ (muốn mua, muốn tư vấn ngay, để lại SĐT, hỏi giá cụ thể,...)
-//             - "Trung bình": Khi người dùng chỉ đang tham khảo, hỏi thông tin, chưa có quyết định.
-//             - "Thấp": Khi chỉ chào hỏi, hoặc tin nhắn không liên quan.
-//         4️⃣ "daDuThongTin": true/false
-//             - true: khi nhu cầu đã rõ ràng, có đủ dữ liệu để tổng hợp/báo cáo.
-//             - false: nếu người dùng vẫn đang hỏi, chưa đủ dữ kiện.
-//         5️⃣ "lyDo": Giải thích ngắn gọn vì sao đánh giá như vậy.
+  if (phoneNumbers && phoneNumbers.length > 0) {
+    phoneInfo = phoneNumbers.join(", ");
+    console.log(`[Data] 📞 Phát hiện SĐT: ${phoneInfo}`);
+  }
 
-//         Yêu cầu:
-//         - Luôn trả về JSON hợp lệ, không thêm mô tả hoặc văn bản ngoài JSON.
-//         - Nếu dữ liệu chưa đủ, hãy ghi rõ phần còn thiếu trong trường "lyDo".
-//       `,
-//     },
-//   });
+  // 2️⃣ Tạo session AI với hướng dẫn chuẩn
+  const chat = ai.chats.create({
+    model: "gemini-2.5-flash",
+    config: {
+      systemInstruction: `
+        Bạn là trợ lý phân tích hội thoại thông minh cho doanh nghiệp.
+        Nhiệm vụ:
+        - Hiểu ngữ cảnh hội thoại giữa người dùng và hệ thống.
+        - Bóc tách thông tin quan trọng từ tin nhắn mới nhất của người dùng.
+        - Đánh giá mức độ quan tâm của người dùng đối với sản phẩm/dịch vụ.
+        - Xác định xem cuộc hội thoại đã đủ thông tin để tổng hợp hay chưa.
 
-//   const prompt = `
-//   Dưới đây là hội thoại giữa người dùng và hệ thống:
-//   ${
-//     conversationHistory.length
-//       ? JSON.stringify(conversationHistory, null, 2)
-//       : "(Chưa có hội thoại trước đó)"
-//   }
+        Hướng dẫn chi tiết:
+        1️⃣ "nhuCau": Tóm tắt ngắn gọn nhu cầu chính (mua hàng, hỏi giá, hỗ trợ...).
+        2️⃣ "soDienThoai": Lấy từ nội dung tin nhắn (nếu có), hoặc giá trị đã phát hiện trong phoneInfo.
+        3️⃣ "mucDoQuanTam": 
+            - "Cao": Có hành động rõ (đặt hàng, để lại SĐT, yêu cầu gọi lại, v.v.)
+            - "Trung bình": Chỉ đang hỏi hoặc tham khảo.
+            - "Thấp": Tin nhắn mơ hồ, không liên quan.
+        4️⃣ "daDuThongTin": true/false — nếu người dùng đã cung cấp đủ dữ kiện để tổng hợp.
+        5️⃣ "lyDo": Giải thích ngắn gọn vì sao đánh giá như vậy.
 
-//   Tin nhắn mới nhất từ người dùng:
-//   "${message}"
-//   ${phoneInfo ? `Số điện thoại đã phát hiện: ${phoneInfo}` : ""}
+        Luôn trả về JSON hợp lệ, KHÔNG thêm mô tả ngoài JSON.
+      `,
+    },
+  });
 
-//   Hãy phân tích và trả kết quả theo đúng JSON sau:
-//   {
-//     "nhuCau": "",
-//     "soDienThoai": "",
-//     "mucDoQuanTam": "",
-//     "daDuThongTin": false,
-//     "lyDo": ""
-//   }
-//   `;
+  // 3️⃣ Chuẩn bị prompt gửi tới AI
+  const prompt = `
+  Dưới đây là hội thoại trước đó (nếu có):
+  ${
+    conversationHistory.length
+      ? JSON.stringify(conversationHistory, null, 2)
+      : "(Chưa có hội thoại trước đó)"
+  }
 
-//   const result = await chat.sendMessage(prompt);
-//   const text = result.response.text();
+  Tin nhắn mới nhất của người dùng:
+  "${messageFromUser}"
 
-//   try {
-//     return JSON.parse(text);
-//   } catch (err) {
-//     console.error("Không thể parse JSON từ AI:", text);
-//     return { raw: text };
-//   }
-// };
+  ${
+    phoneInfo
+      ? `Số điện thoại đã phát hiện: ${phoneInfo}`
+      : "Không phát hiện được số điện thoại."
+  }
+
+  Hãy phân tích và trả về JSON theo mẫu:
+  {
+    "nhuCau": "",
+    "soDienThoai": "",
+    "mucDoQuanTam": "",
+    "daDuThongTin": false,
+    "lyDo": ""
+  }
+  `;
+
+  // 4️⃣ Gửi yêu cầu đến AI
+  const response = await chat.sendMessage({ message: prompt });
+  if (
+    response &&
+    response.candidates &&
+    response.candidates.length > 0 &&
+    response.candidates[0].content &&
+    response.candidates[0].content.parts &&
+    response.candidates[0].content.parts.length > 0
+  ) {
+    try {
+      return JSON.parse(response.candidates[0].content.parts[0].text);
+    } catch (err) {
+      console.error("❌ Không thể parse JSON từ AI:", text);
+      return { raw: text };
+    }
+  } else {
+    console.warn(`[AI] Phản hồi rỗng hoặc bị chặn cho user: ${userId}`);
+    return "Không đủ dữ liệu phân tích";
+  }
+};
 
 const chatSessions = new Map();
 
@@ -160,21 +182,10 @@ export const sentMessageForUserByIdService = async (
     throw new Error("UID and Text message are required");
   }
 
+  analyzeUserMessageService(messageFromUser, []);
+
   console.log(`UID [${userId}]: ${messageFromUser}`);
 
-  const phoneNumbers = extractPhoneNumber(messageFromUser);
-  let contextMessage = messageFromUser;
-  if (phoneNumbers.length > 0) {
-    console.log(`[Data] Phát hiện SĐT: ${phoneNumbers.join(", ")}`);
-    // Ví dụ: Làm giàu context cho AI
-    contextMessage = `
-      Người dùng nói: "${messageFromUser}".
-      (Thông tin hệ thống: Đã phát hiện SĐT trong tin nhắn là: ${phoneNumbers[0]})
-    `;
-  }
-  // và sau đó gọi: await handleChatService(contextMessage, userId);
-
-  // Tạm thời, tôi sẽ giữ logic gốc của bạn là chỉ gửi tin nhắn thô:
   const messageFromAI = await handleChatService(messageFromUser, userId);
   // 3. Gửi tin nhắn trả lời cho Zalo
   console.log(`AI to [${userId}]: ${messageFromAI}`);
