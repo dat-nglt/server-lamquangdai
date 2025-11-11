@@ -69,10 +69,7 @@ export const getAllMessageByUserIdController = async (req, res) => {
  */
 export const sentMessageForUserByIdController = async (req, res) => {
   try {
-    // Lấy userId từ URL param
-    const { userId } = req.params;
-    // Lấy nội dung tin nhắn từ body
-    const { text } = req.body;
+    const { text, userId } = req.body;
 
     if (!text) {
       return res
