@@ -35,7 +35,7 @@ export const analyzeUserMessageService = async (
   messageFromUser,
   conversationHistory = []
 ) => {
-  // 1️⃣ Tự động trích xuất số điện thoại từ tin nhắn người dùng
+  // 1️⃣ Tự động trích xuất số điện thoại bằng regex trước
   const phoneNumbers = extractPhoneNumber(messageFromUser);
   let phoneInfo = null;
 
@@ -44,29 +44,30 @@ export const analyzeUserMessageService = async (
     console.log(`[Data] 📞 Phát hiện SĐT: ${phoneInfo}`);
   }
 
-  // 2️⃣ Tạo session AI với hướng dẫn chuẩn
+  // 2️⃣ Tạo session AI với hướng dẫn thông minh
   const chat = ai.chats.create({
     model: "gemini-2.5-flash",
     config: {
       systemInstruction: `
-        Bạn là trợ lý phân tích hội thoại thông minh cho doanh nghiệp.
-        Nhiệm vụ:
+        Bạn là trợ lý AI chuyên phân tích hội thoại kinh doanh.
+        Nhiệm vụ của bạn:
         - Hiểu ngữ cảnh hội thoại giữa người dùng và hệ thống.
-        - Bóc tách thông tin quan trọng từ tin nhắn mới nhất của người dùng.
-        - Đánh giá mức độ quan tâm của người dùng đối với sản phẩm/dịch vụ.
-        - Xác định xem cuộc hội thoại đã đủ thông tin để tổng hợp hay chưa.
+        - Bóc tách nhu cầu và thông tin khách hàng.
+        - Nhận diện và chuẩn hóa số điện thoại (ngay cả khi viết tách, viết bằng chữ, hoặc thiếu số 0 đầu).
+        - Đánh giá mức độ quan tâm và quyết định xem hội thoại đã đủ dữ kiện để tổng hợp hay chưa.
 
-        Hướng dẫn chi tiết:
-        1️⃣ "nhuCau": Tóm tắt ngắn gọn nhu cầu chính (mua hàng, hỏi giá, hỗ trợ...).
-        2️⃣ "soDienThoai": Lấy từ nội dung tin nhắn (nếu có), hoặc giá trị đã phát hiện trong phoneInfo.
-        3️⃣ "mucDoQuanTam": 
-            - "Cao": Có hành động rõ (đặt hàng, để lại SĐT, yêu cầu gọi lại, v.v.)
-            - "Trung bình": Chỉ đang hỏi hoặc tham khảo.
-            - "Thấp": Tin nhắn mơ hồ, không liên quan.
-        4️⃣ "daDuThongTin": true/false — nếu người dùng đã cung cấp đủ dữ kiện để tổng hợp.
-        5️⃣ "lyDo": Giải thích ngắn gọn vì sao đánh giá như vậy.
+        Yêu cầu:
+        1️⃣ "nhuCau": Tóm tắt ngắn gọn nhu cầu chính.
+        2️⃣ "soDienThoai": Nếu regex không phát hiện, hãy tự tìm trong văn bản và chuẩn hóa về dạng 0xxxxxxxxx hoặc +84xxxxxxxxx.
+        3️⃣ "mucDoQuanTam":
+            - "Cao": có hành động cụ thể (muốn mua, để lại SĐT, yêu cầu tư vấn,...)
+            - "Trung bình": chỉ đang hỏi, chưa cam kết
+            - "Thấp": mơ hồ, không liên quan
+        4️⃣ "daDuThongTin": true/false — xác định xem đã đủ thông tin để tổng hợp chưa
+        5️⃣ "lyDo": Giải thích vì sao đưa ra kết luận
+        6️⃣ Nếu người dùng cung cấp SĐT gián tiếp (viết tách hoặc bằng chữ), hãy tự chuyển về số hợp lệ.
 
-        Luôn trả về JSON hợp lệ, KHÔNG thêm mô tả ngoài JSON.
+        Luôn trả về JSON hợp lệ, KHÔNG viết mô tả ngoài JSON.
       `,
     },
   });
@@ -85,8 +86,8 @@ export const analyzeUserMessageService = async (
 
   ${
     phoneInfo
-      ? `Số điện thoại đã phát hiện: ${phoneInfo}`
-      : "Không phát hiện được số điện thoại."
+      ? `Số điện thoại phát hiện qua regex: ${phoneInfo}`
+      : "Regex chưa phát hiện được số điện thoại."
   }
 
   Hãy phân tích và trả về JSON theo mẫu:
@@ -99,20 +100,22 @@ export const analyzeUserMessageService = async (
   }
   `;
 
-  // 4️⃣ Gửi yêu cầu đến AI
+  // 4️⃣ Gửi yêu cầu đến AI và xử lý kết quả
   const response = await chat.sendMessage({ message: prompt });
-  if (
-    response &&
-    response.candidates &&
-    response.candidates.length > 0 &&
-    response.candidates[0].content &&
-    response.candidates[0].content.parts &&
-    response.candidates[0].content.parts.length > 0
-  ) {
-    return response.candidates[0].content.parts[0].text;
-  } else {
-    console.warn(`[AI] Phản hồi rỗng hoặc bị chặn cho user: ${userId}`);
-    return "Không đủ dữ liệu phân tích";
+  const text =
+    response?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || null;
+
+  if (!text) {
+    console.warn(`[AI] ⚠️ Phản hồi rỗng cho user`);
+    return { error: "Không đủ dữ liệu để phân tích" };
+  }
+
+  try {
+    return JSON.parse(text);
+  } catch (err) {
+    console.error("❌ Lỗi parse JSON từ AI:", text);
+    // Fallback: nếu AI trả về không đúng định dạng JSON
+    return { raw: text };
   }
 };
 
