@@ -194,7 +194,18 @@ export const sentMessageForUserByIdService = async (
     userId // Truyền userId để lấy lịch sử
   );
 
-  console.log(`analyzeUserMessageService: ${analyzeUserMessageResult}`);
+  const jsonString = analyzeUserMessageResult.replace("```json", "").replace("```", "").trim();
+
+  try {
+    const jsonData = JSON.parse(jsonString);
+    console.log("Parse thành công!");
+    console.log("Số điện thoại:", jsonData.soDienThoai);
+  } catch (e) {
+    console.error("Lỗi parse JSON:", e);
+    console.log("Chuỗi sau khi replace:", jsonString); // In ra để kiểm tra
+  }
+
+  console.log(`analyzeUserMessageService: ${jsonData}`);
 
   console.log(`UID [${userId}]: ${messageFromUser}`);
 
