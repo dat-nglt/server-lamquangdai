@@ -291,6 +291,7 @@ export const informationForwardingSynthesisService = async (
   try {
     const response = await axios.post(url, payload, { headers });
     console.log("Đã gửi tin nhắn");
+    console.log(response);
     return response.data;
   } catch (error) {
     console.error(
