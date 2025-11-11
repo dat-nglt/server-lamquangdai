@@ -5,7 +5,7 @@ import { extractPhoneNumber } from "../utils/extractPhoneNumber.js";
 import conversationService from "../utils/conversation.js";
 
 const API_KEY =
-  process.env.GEMINI_API_KEY || "AIzaSyBAgHEF6i2FubocxwmVA692CzMZf3MIchM";
+  process.env.GEMINI_API_KEY || "AIzaSyC8SrYclm2PScOKFZNh6cv0rdfx5rVFZKg";
 const ACCESS_TOKEN =
   process.env.ZALO_ACCESS_TOKEN ||
   "gBHbKca06XofjMTTR0yG7QcxRb5d5r1dfwSfRHDHLrw0brnCGaP1MeozELeyIm4IhQq9NYnjAdo9s2ynEHzLVVdgJcn534nQXi0nH1Cj9rYZnpWI8YCf9_Za9Zn48IuAsvjLNqP-In7oXZSGTsWE1k6o3XfyN28JpOqu878x8X_7rpmELZzA0lBQIYbA56yVsEvl5sGVJ3N1yZGYK5r8RDI-FrPWP44Syfn50tHcSZRkid43INr7IusLI6j3I3SZ_VWqB6SlD1YWc3GsPaaOOy6Z67ztM059z-8uNc4_9tFCrZbQTZSuR-3FB5DxUmXDo98PM6Ke5M7t_WnBGXiTMVBR2rDk3YDlm-W19sKzTZRYY5SuMtfCACNABn852GWyjkmk4tDT1WBhfX0OVLGmKjwSDtDFTFU2JdXh61eS";
@@ -202,9 +202,9 @@ export const sentMessageForUserByIdService = async (
   try {
     const jsonData = JSON.parse(jsonString);
     console.log("Parse thành công!");
-    console.log(`analyzeUserMessageService: ${jsonData.soDienThoai}`);
-    console.log(`analyzeUserMessageService: ${jsonData.nhuCau}`);
-    console.log(`analyzeUserMessageService: ${jsonData.daDuThongTin}`);
+    console.log(`Số điện thoại: ${jsonData.soDienThoai}`);
+    console.log(`Nhu cầu: ${jsonData.nhuCau}`);
+    console.log(`Đủ thông tin: ${jsonData.daDuThongTin}`);
   } catch (e) {
     console.error("Lỗi parse JSON:", e);
     console.log("Chuỗi sau khi replace:", jsonString); // In ra để kiểm tra
