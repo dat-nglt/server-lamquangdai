@@ -1,18 +1,19 @@
 import axios from "axios";
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenerativeAI } from "@google/genai";
 import { SYSTEM_INSTRUCTION } from "../promts/contact.js";
 import { extractPhoneNumber } from "../utils/extractPhoneNumber.js";
 
-const API_KEY =
-  process.env.GEMINI_API_KEY || "AIzaSyBAgHEF6i2FubocxwmVA692CzMZf3MIchM";
+// Cài đặt 'dotenv' (npm install dotenv) và tạo file .env
+import "dotenv/config";
 
-const ACCESS_TOKEN =
-  process.env.ZALO_ACCESS_TOKEN ||
-  "gBHbKca06XofjMTTR0yG7QcxRb5d5r1dfwSfRHDHLrw0brnCGaP1MeozELeyIm4IhQq9NYnjAdo9s2ynEHzLVVdgJcn534nQXi0nH1Cj9rYZnpWI8YCf9_Za9Zn48IuAsvjLNqP-In7oXZSGTsWE1k6o3XfyN28JpOqu878x8X_7rpmELZzA0lBQIYbA56yVsEvl5sGVJ3N1yZGYK5r8RDI-FrPWP44Syfn50tHcSZRkid43INr7IusLI6j3I3SZ_VWqB6SlD1YWc3GsPaaOOy6Z67ztM059z-8uNc4_9tFCrZbQTZSuR-3FB5DxUmXDo98PM6Ke5M7t_WnBGXiTMVBR2rDk3YDlm-W19sKzTZRYY5SuMtfCACNABn852GWyjkmk4tDT1WBhfX0OVLGmKjwSDtDFTFU2JdXh61eS"; // DÙNG TOKEN MỚI SAU KHI THU HỒI
-
+// --- PHẦN SỬA LỖI BẢO MẬT ---
+// TUYỆT ĐỐI KHÔNG VIẾT KEY TRỰC TIẾP VÀO ĐÂY
+// Hãy lưu chúng trong file .env
+const API_KEY = process.env.GEMINI_API_KEY;
+const ACCESS_TOKEN = process.env.ZALO_ACCESS_TOKEN; // DÙNG TOKEN MỚI SAU KHI THU HỒI
 const ZALO_API_BASE_URL = "https://openapi.zalo.me";
 
-// Kiểm tra biến môi trườngD
+// Kiểm tra biến môi trường
 if (!API_KEY) {
   throw new Error("GEMINI_API_KEY chưa được thiết lập trong file .env");
 }
@@ -20,77 +21,89 @@ if (!ACCESS_TOKEN) {
   throw new Error("ZALO_ACCESS_TOKEN chưa được thiết lập trong file .env");
 }
 
-const ai = new GoogleGenAI({
-  apiKey: API_KEY,
+// --- PHẦN SỬA LỖI SDK & TÊN MODEL ---
+
+// 1. Khởi tạo AI đúng cách
+const genAI = new GoogleGenerativeAI(API_KEY);
+
+// 2. Lấy model MỘT LẦN và cấu hình nó
+// Tên model đúng là "gemini-1.5-flash-latest"
+const chatModel = genAI.getGenerativeModel({
+  model: "gemini-1.5-flash-latest",
+  systemInstruction: SYSTEM_INSTRUCTION,
 });
 
+/**
+ * Hàm này TẠO một phiên chat MỚI.
+ * Đã sửa lại để dùng cú pháp SDK chính xác.
+ */
 export const createChatSessionService = () => {
-  const chat = ai.chats.create({
-    model: "gemini-2.5-flash",
-    config: {
-      systemInstruction: SYSTEM_INSTRUCTION,
-    },
+  console.log("[Chat] Đang tạo session mới với cú pháp SDK đúng...");
+
+  // 3. Cú pháp đúng là model.startChat()
+  const chat = chatModel.startChat({
+    history: [], // Bắt đầu với lịch sử trống
   });
   return chat;
 };
 
+// --- QUẢN LÝ SESSION ---
 
+// CẢNH BÁO: Giải pháp 'in-memory' này chỉ dùng cho development.
+// Khi restart server, tất cả session sẽ mất.
+// Khi chạy > 1 server (scale), session sẽ không đồng bộ.
+// Giải pháp Production: Dùng Redis, Firestore, hoặc CSDL.
 const chatSessions = new Map();
+
 const getOrCreateChatSession = (userId) => {
   // 1. Kiểm tra xem đã có session cho user này chưa
   if (chatSessions.has(userId)) {
     console.log(`[Chat] Đang lấy session cho user: ${userId}`);
     return chatSessions.get(userId);
-  } // 2. Nếu chưa, tạo một session mới
+  }
 
+  // 2. Nếu chưa, tạo một session mới
   console.log(`[Chat] Tạo session MỚI cho user: ${userId}`);
   const newChatSession = createChatSessionService();
   chatSessions.set(userId, newChatSession); // Lưu lại để dùng lần sau
   return newChatSession;
 };
 
+// --- XỬ LÝ CHAT (Hàm này đã tốt) ---
 export const handleChatService = async (userMessage, userId) => {
   // 1. Lấy đúng session của user
   const chatSession = getOrCreateChatSession(userId);
 
   try {
     // 2. Gửi tin nhắn vào session đó
-    const result = await chatSession.sendMessage(userMessage); // Đơn giản hóa, chỉ gửi text
-    const response = result.response; // Giả sử SDK trả về cấu trúc này
+    const result = await chatSession.sendMessage(userMessage);
+    const response = result.response;
 
-    // 3. TỐI ƯU: Kiểm tra phản hồi một cách an toàn
-    // Thay vì truy cập trực tiếp [0], hãy kiểm tra
+    // 3. Kiểm tra phản hồi an toàn (Đã tối ưu)
     if (
       response &&
       response.candidates &&
-      response.candidates.length > 0 &&
-      response.candidates[0].content &&
-      response.candidates[0].content.parts &&
-      response.candidates[0].content.parts.length > 0
+      response.candidates[0]?.content?.parts[0]?.text
     ) {
       return response.candidates[0].content.parts[0].text;
     } else {
-      // Xử lý trường hợp Gemini không trả về gì (ví dụ: bị chặn do an toàn)
-      console.warn(`[AI] Phản hồi rỗng hoặc bị chặn cho user: ${userId}`);
+      // Xử lý trường hợp bị chặn an toàn
+      console.warn(`[AI] Phản hồi rỗng/bị chặn cho user: ${userId}`);
       return "Cảm ơn anh/chị đã tin tưởng liên hệ đến Lâm Quang Đại, anh chị vui lòng để lại số điện thoại để em chuyển tiếp đến bộ phận kinh doanh hỗ trợ mình thêm ạ";
     }
   } catch (error) {
-    // 4. TỐI ƯU: Bắt lỗi từ API Gemini
+    // 4. Bắt lỗi từ API Gemini (Đã tối ưu)
     console.error(`[AI Error] Lỗi khi gọi Gemini cho user ${userId}:`, error);
-    // Trả về một tin nhắn lỗi thân thiện với người dùng
     return "Cảm ơn anh/chị đã tin tưởng liên hệ đến Lâm Quang Đại, anh chị vui lòng để lại số điện thoại để em chuyển tiếp đến bộ phận kinh doanh hỗ trợ mình thêm ạ";
   }
 };
 
-/**
- * Gọi API Zalo: Gửi tin nhắn tư vấn (CS) cho người dùng
- * API: /v3.0/oa/message/cs
- */
+// --- DỊCH VỤ GỬI TIN ZALO ---
 export const sentMessageForUserByIdService = async (
   userId,
   messageFromUser
 ) => {
-  // 1. TỐI ƯU: Validate input ngay lập tức
+  // 1. Validate input (Đã tối ưu)
   if (!userId || !messageFromUser) {
     console.error("Không xác định người người nhận và nội dung tin nhắn");
     throw new Error("UID and Text message are required");
@@ -98,20 +111,23 @@ export const sentMessageForUserByIdService = async (
 
   console.log(`UID [${userId}]: ${messageFromUser}`);
 
+  // 2. Xử lý làm giàu context (Giữ nguyên logic của bạn)
   const phoneNumbers = extractPhoneNumber(messageFromUser);
   let contextMessage = messageFromUser;
+
   if (phoneNumbers.length > 0) {
     console.log(`[Data] Phát hiện SĐT: ${phoneNumbers.join(", ")}`);
-    // Ví dụ: Làm giàu context cho AI
     contextMessage = `
       Người dùng nói: "${messageFromUser}".
       (Thông tin hệ thống: Đã phát hiện SĐT trong tin nhắn là: ${phoneNumbers[0]})
     `;
   }
-  // và sau đó gọi: await handleChatService(contextMessage, userId);
 
-  // Tạm thời, tôi sẽ giữ logic gốc của bạn là chỉ gửi tin nhắn thô:
-  const messageFromAI = await handleChatService(messageFromUser, userId);
+  // --- PHẦN SỬA LỖI LOGIC ---
+  // Gọi AI với `contextMessage` đã được làm giàu,
+  // chứ KHÔNG phải `messageFromUser` gốc.
+  const messageFromAI = await handleChatService(contextMessage, userId);
+
   // 3. Gửi tin nhắn trả lời cho Zalo
   console.log(`AI to [${userId}]: ${messageFromAI}`);
 
@@ -121,7 +137,7 @@ export const sentMessageForUserByIdService = async (
     message: { text: messageFromAI },
   };
   const headers = {
-    access_token: ACCESS_TOKEN,
+    access_token: ACCESS_TOKEN, // Đọc từ process.env
     "Content-Type": "application/json",
   };
 
@@ -133,7 +149,6 @@ export const sentMessageForUserByIdService = async (
       "Zalo API Error (sentMessageForUserByIdService):",
       error.response?.data
     );
-    // Ném lỗi này để hàm gọi bên ngoài có thể xử lý
     throw new Error(
       error.response?.data?.message || "Failed to send Zalo message"
     );
