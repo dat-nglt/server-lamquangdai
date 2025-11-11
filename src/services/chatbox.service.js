@@ -206,7 +206,7 @@ export const sentMessageForUserByIdService = async (
 
   try {
     const jsonData = JSON.parse(jsonString);
-    if (jsonData.daDuThongTin) {
+    if (jsonData.daDuThongTin == "true") {
       const dataCustomer = `
         🔔Thông báo khách hàng mới🔔
 
