@@ -275,8 +275,8 @@ export const sentMessageForUserByIdService = async (
 };
 
 export const informationForwardingSynthesisService = async (
-  userId = "7365147034329534561",
-  dataCustomer
+  dataCustomer,
+  userId = "7365147034329534561"
 ) => {
   const url = `${ZALO_API_BASE_URL}/v3.0/oa/message/cs`;
   const payload = {
