@@ -188,6 +188,11 @@ export const sentMessageForUserByIdService = async (
   // 2. THÊM VÀO: Lưu tin nhắn người dùng vào lịch sử
   conversationService.addMessage(userId, "user", messageFromUser);
 
+  if (userId !== "7365147034329534561") {
+    console.log("Hệ thống đang ở chế độ kiểm thử");
+    return;
+  }
+
   // 3. Phân tích tin nhắn với lịch sử đầy đủ
   const analyzeUserMessageResult = await analyzeUserMessageService(
     messageFromUser,
@@ -201,7 +206,19 @@ export const sentMessageForUserByIdService = async (
 
   try {
     const jsonData = JSON.parse(jsonString);
-    console.log("Parse thành công!");
+    if (jsonData.daDuThongTin) {
+      const dataCustomer = `
+        🔔Thông báo khách hàng mới🔔
+
+        Một khách hàng mới vừa đăng ký với thông tin:
+        - Nhu cầu: *${jsonData.nhuCau}*
+        - Số điện thoại: **${jsonData.soDienThoai}**
+        - Mức độ quan tâm: **${jsonData.mucDoQuanTam}**
+
+        Vui lòng liên hệ lại khách hàng ngay!
+      `;
+      informationForwardingSynthesisService(dataCustomer);
+    }
     console.log(`Số điện thoại: ${jsonData.soDienThoai}`);
     console.log(`Nhu cầu: ${jsonData.nhuCau}`);
     console.log(`Đủ thông tin: ${jsonData.daDuThongTin}`);
@@ -225,6 +242,34 @@ export const sentMessageForUserByIdService = async (
   const payload = {
     recipient: { user_id: userId },
     message: { text: messageFromAI },
+  };
+  const headers = {
+    access_token: ACCESS_TOKEN,
+    "Content-Type": "application/json",
+  };
+
+  try {
+    const response = await axios.post(url, payload, { headers });
+    return response.data;
+  } catch (error) {
+    console.error(
+      "Zalo API Error (sentMessageForUserByIdService):",
+      error.response?.data
+    );
+    throw new Error(
+      error.response?.data?.message || "Failed to send Zalo message"
+    );
+  }
+};
+
+export const informationForwardingSynthesisService = async (
+  userId = "7365147034329534561",
+  dataCustomer
+) => {
+  const url = `${ZALO_API_BASE_URL}/v3.0/oa/message/cs`;
+  const payload = {
+    recipient: { user_id: userId },
+    message: { text: dataCustomer },
   };
   const headers = {
     access_token: ACCESS_TOKEN,
