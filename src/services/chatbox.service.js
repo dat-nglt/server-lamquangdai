@@ -208,7 +208,7 @@ export const sentMessageForUserByIdService = async (
     const jsonData = JSON.parse(jsonString);
     if (jsonData.soDienThoai && jsonData.nhuCau) {
       const dataCustomer = `
-        ✨KHÁCH HÀNG MỚI✨:
+          ✨KHÁCH HÀNG MỚI✨
 
 ✅Nhu cầu: ${jsonData.nhuCau}
 
@@ -277,7 +277,7 @@ export const sentMessageForUserByIdService = async (
 
 export const informationForwardingSynthesisService = async (
   dataCustomer,
-  userId = "7365147034329534561"
+  userId = "1591235795556991810"
 ) => {
   const url = `${ZALO_API_BASE_URL}/v3.0/oa/message/cs`;
   const payload = {
