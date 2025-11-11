@@ -2,13 +2,13 @@ import axios from "axios";
 import { GoogleGenAI } from "@google/genai";
 import { SYSTEM_INSTRUCTION } from "../promts/contact.js";
 import { extractPhoneNumber } from "../utils/extractPhoneNumber.js";
+import { conversationService } from "./conversationService.js"; // Import service lưu trữ hội thoại
 
 const API_KEY =
   process.env.GEMINI_API_KEY || "AIzaSyBAgHEF6i2FubocxwmVA692CzMZf3MIchM";
 const ACCESS_TOKEN =
   process.env.ZALO_ACCESS_TOKEN ||
-  "gBHbKca06XofjMTTR0yG7QcxRb5d5r1dfwSfRHDHLrw0brnCGaP1MeozELeyIm4IhQq9NYnjAdo9s2ynEHzLVVdgJcn534nQXi0nH1Cj9rYZnpWI8YCf9_Za9Zn48IuAsvjLNqP-In7oXZSGTsWE1k6o3XfyN28JpOqu878x8X_7rpmELZzA0lBQIYbA56yVsEvl5sGVJ3N1yZGYK5r8RDI-FrPWP44Syfn50tHcSZRkid43INr7IusLI6j3I3SZ_VWqB6SlD1YWc3GsPaaOOy6Z67ztM059z-8uNc4_9tFCrZbQTZSuR-3FB5DxUmXDo98PM6Ke5M7t_WnBGXiTMVBR2rDk3YDlm-W19sKzTZRYY5SuMtfCACNABn852GWyjkmk4tDT1WBhfX0OVLGmKjwSDtDFTFU2JdXh61eS"; // DÙNG TOKEN MỚI SAU KHI THU HỒI
-const ZALO_API_BASE_URL = "https://openapi.zalo.me";
+  "gBHbKca06XofjMTTR0yG7QcxRb5d5r1dfwSfRHDHLrw0brnCGaP1MeozELeyIm4IhQq9NYnjAdo9s2ynEHzLVVdgJcn534nQXi0nH1Cj9rYZnpWI8YCf9_Za9Zn48IuAsvjLNqP-In7oXZSGTsWE1k6o3XfyN28JpOqu878x8X_7rpmELZzA0lBQIYbA56yVsEvl5sGVJ3N1yZGYK5r8RDI-FrPWP44Syfn50tHcSZRkid43INr7IusLI6j3I3SZ_VWqB6SlD1YWc3GsPaaOOy6Z67ztM059z-8uNc4_9tFCrZbQTZSuR-3FB5DxUmXDo98PM6Ke5M7t_WnBGXiTMVBR2rDk3YDlm-W19sKzTZRYY5SuMtfCACNABn852GWyjkmk4tDT1WBhfX0OVLGmKjwSDtDFTFU2JdXh61eS";
 
 if (!API_KEY) {
   throw new Error("GEMINI_API_KEY chưa được thiết lập trong file .env");
@@ -33,9 +33,13 @@ export const createChatSessionService = () => {
 
 export const analyzeUserMessageService = async (
   messageFromUser,
-  conversationHistory = []
+  userId // Thêm userId để lấy lịch sử
 ) => {
-  // 1️⃣ Tự động trích xuất số điện thoại bằng regex trước
+  // 1️⃣ Lấy lịch sử hội thoại từ conversationService
+  const conversationHistory =
+    conversationService.getConversationHistory(userId);
+
+  // 2️⃣ Tự động trích xuất số điện thoại bằng regex trước
   const phoneNumbers = extractPhoneNumber(messageFromUser);
   let phoneInfo = null;
 
@@ -44,7 +48,7 @@ export const analyzeUserMessageService = async (
     console.log(`[Data] 📞 Phát hiện SĐT: ${phoneInfo}`);
   }
 
-  // 2️⃣ Tạo session AI với hướng dẫn thông minh
+  // 3️⃣ Tạo session AI với hướng dẫn thông minh
   const chat = ai.chats.create({
     model: "gemini-2.5-flash",
     config: {
@@ -72,12 +76,12 @@ export const analyzeUserMessageService = async (
     },
   });
 
-  // 3️⃣ Chuẩn bị prompt gửi tới AI
+  // 3️⃣ Chuẩn bị prompt gửi tới AI với lịch sử hội thoại
   const prompt = `
   Dưới đây là hội thoại trước đó (nếu có):
   ${
     conversationHistory.length
-      ? JSON.stringify(conversationHistory, null, 2)
+      ? conversationService.getFormattedHistory(userId)
       : "(Chưa có hội thoại trước đó)"
   }
 
@@ -106,7 +110,7 @@ export const analyzeUserMessageService = async (
     response?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || null;
 
   if (!textMessage) {
-    console.warn(`[AI] ⚠️ Phản hồi rỗng cho user`);
+    console.warn(`[AI] ⚠️ Phản hồi rỗng cho user ${userId}`);
     return { error: "Không đủ dữ liệu để phân tích" };
   }
 
@@ -134,10 +138,9 @@ export const handleChatService = async (userMessage, userId) => {
 
   try {
     // 2. Gửi tin nhắn vào session đó
-    const response = await chatSession.sendMessage({ message: userMessage }); // Đơn giản hóa, chỉ gửi text
+    const response = await chatSession.sendMessage({ message: userMessage });
 
     // 3. TỐI ƯU: Kiểm tra phản hồi một cách an toàn
-    // Thay vì truy cập trực tiếp [0], hãy kiểm tra
     if (
       response &&
       response.candidates &&
@@ -148,14 +151,13 @@ export const handleChatService = async (userMessage, userId) => {
     ) {
       return response.candidates[0].content.parts[0].text;
     } else {
-      // Xử lý trường hợp Gemini không trả về gì (ví dụ: bị chặn do an toàn)
+      // Xử lý trường hợp Gemini không trả về gì
       console.warn(`[AI] Phản hồi rỗng hoặc bị chặn cho user: ${userId}`);
       return "Cảm ơn anh/chị đã tin tưởng liên hệ đến Lâm Quang Đại, anh chị vui lòng để lại số điện thoại để em chuyển tiếp đến bộ phận kinh doanh hỗ trợ mình thêm ạ";
     }
   } catch (error) {
     // 4. TỐI ƯU: Bắt lỗi từ API Gemini
     console.error(`[AI Error] Lỗi khi gọi Gemini cho user ${userId}:`, error);
-    // Trả về một tin nhắn lỗi thân thiện với người dùng
     return "Cảm ơn anh/chị đã tin tưởng liên hệ đến Lâm Quang Đại, anh chị vui lòng để lại số điện thoại để em chuyển tiếp đến bộ phận kinh doanh hỗ trợ mình thêm ạ";
   }
 };
@@ -168,25 +170,34 @@ export const sentMessageForUserByIdService = async (
   userId,
   messageFromUser
 ) => {
-  // 1. TỐI ƯU: Validate input ngay lập tức
+  // 1. Validate input
   if (!userId || !messageFromUser) {
     console.error("Không xác định người người nhận và nội dung tin nhắn");
     throw new Error("UID and Text message are required");
   }
 
+  // 2. THÊM VÀO: Lưu tin nhắn người dùng vào lịch sử
+  conversationService.addMessage(userId, "user", messageFromUser);
+
+  // 3. Phân tích tin nhắn với lịch sử đầy đủ
   const analyzeUserMessageResult = await analyzeUserMessageService(
     messageFromUser,
-    []
+    userId // Truyền userId để lấy lịch sử
   );
 
   console.log(`analyzeUserMessageService: ${analyzeUserMessageResult}`);
 
   console.log(`UID [${userId}]: ${messageFromUser}`);
 
+  // 4. Xử lý chat với AI
   const messageFromAI = await handleChatService(messageFromUser, userId);
-  // 3. Gửi tin nhắn trả lời cho Zalo
+
+  // 5. THÊM VÀO: Lưu phản hồi AI vào lịch sử
+  conversationService.addMessage(userId, "model", messageFromAI);
+
   console.log(`AI to [${userId}]: ${messageFromAI}`);
 
+  // 6. Gửi tin nhắn trả lời cho Zalo
   const url = `${ZALO_API_BASE_URL}/v3.0/oa/message/cs`;
   const payload = {
     recipient: { user_id: userId },
@@ -205,11 +216,35 @@ export const sentMessageForUserByIdService = async (
       "Zalo API Error (sentMessageForUserByIdService):",
       error.response?.data
     );
-    // Ném lỗi này để hàm gọi bên ngoài có thể xử lý
     throw new Error(
       error.response?.data?.message || "Failed to send Zalo message"
     );
   }
+};
+
+/**
+ * Hàm mới: Lấy lịch sử hội thoại của user
+ */
+export const getConversationHistoryService = (userId) => {
+  return conversationService.getConversationHistory(userId);
+};
+
+/**
+ * Hàm mới: Xóa lịch sử hội thoại của user
+ */
+export const clearConversationHistoryService = (userId) => {
+  conversationService.clearHistory(userId);
+  // Đồng thời xóa cả chat session nếu có
+  if (chatSessions.has(userId)) {
+    chatSessions.delete(userId);
+  }
+};
+
+/**
+ * Hàm mới: Lấy số lượng hội thoại đang hoạt động
+ */
+export const getActiveConversationsCountService = () => {
+  return conversationService.getActiveConversationsCount();
 };
 
 /**
