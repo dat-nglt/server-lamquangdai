@@ -208,12 +208,14 @@ export const sentMessageForUserByIdService = async (
     const jsonData = JSON.parse(jsonString);
     if (jsonData.soDienThoai && jsonData.nhuCau) {
       const dataCustomer = `
-        🔔Thông báo khách hàng mới🔔
+        ✨KHÁCH HÀNG MỚI✨:
 
-✨Một khách hàng mới vừa đăng ký với thông tin:
 ✅Nhu cầu: ${jsonData.nhuCau}
+
 ✅Số điện thoại: ${jsonData.soDienThoai}
-✅Mức độ quan tâm: **${jsonData.mucDoQuanTam}
+
+✅Mức độ quan tâm: ${jsonData.mucDoQuanTam}
+
 📞Vui lòng liên hệ lại khách hàng ngay!
       `;
 
