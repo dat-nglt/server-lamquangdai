@@ -120,7 +120,7 @@ export const handleChatService = async (userMessage, userId) => {
 
   try {
     // 2. Gửi tin nhắn vào session đó
-    const response = await chatSession.sendMessage(userMessage); // Đơn giản hóa, chỉ gửi text
+    const response = await chatSession.sendMessage({ message: userMessage }); // Đơn giản hóa, chỉ gửi text
 
     // 3. TỐI ƯU: Kiểm tra phản hồi một cách an toàn
     // Thay vì truy cập trực tiếp [0], hãy kiểm tra
