@@ -78,5 +78,4 @@ const conversationService = {
 /**
  * Export đối tượng service để các file khác có thể import và sử dụng.
  */
-export { conversationService };
 export default conversationService;

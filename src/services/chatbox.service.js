@@ -2,7 +2,7 @@ import axios from "axios";
 import { GoogleGenAI } from "@google/genai";
 import { SYSTEM_INSTRUCTION } from "../promts/contact.js";
 import { extractPhoneNumber } from "../utils/extractPhoneNumber.js";
-import { conversationService } from "./conversationService.js"; // Import service lưu trữ hội thoại
+import conversationService from "../utils/conversation.js";
 
 const API_KEY =
   process.env.GEMINI_API_KEY || "AIzaSyBAgHEF6i2FubocxwmVA692CzMZf3MIchM";
