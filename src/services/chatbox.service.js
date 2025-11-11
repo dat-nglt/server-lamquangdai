@@ -217,12 +217,16 @@ export const sentMessageForUserByIdService = async (
 
         Vui lòng liên hệ lại khách hàng ngay!
       `;
-      const response = await informationForwardingSynthesisService(
-        dataCustomer
-      );
 
-      if (response.message === "Success") {
-        console.log("Đã báo thông tin khách hàng đến Lead");
+      try {
+        const response = await informationForwardingSynthesisService(
+          dataCustomer
+        );
+        if (response.message === "Success") {
+          console.log("Đã báo thông tin khách hàng đến Lead");
+        }
+      } catch (error) {
+        console.log(error);
       }
     } else {
       console.log("Chưa đầy đủ thông tin");
