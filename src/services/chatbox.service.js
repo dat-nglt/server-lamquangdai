@@ -217,7 +217,13 @@ export const sentMessageForUserByIdService = async (
 
         Vui lòng liên hệ lại khách hàng ngay!
       `;
-      informationForwardingSynthesisService(dataCustomer);
+      const response = await informationForwardingSynthesisService(
+        dataCustomer
+      );
+
+      if (response.message === "Success") {
+        console.log("Đã báo thông tin khách hàng đến Lead");
+      }
     }
     console.log(`Số điện thoại: ${jsonData.soDienThoai}`);
     console.log(`Nhu cầu: ${jsonData.nhuCau}`);
