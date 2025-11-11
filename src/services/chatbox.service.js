@@ -210,12 +210,11 @@ export const sentMessageForUserByIdService = async (
       const dataCustomer = `
         🔔Thông báo khách hàng mới🔔
 
-        Một khách hàng mới vừa đăng ký với thông tin:
-        - Nhu cầu: *${jsonData.nhuCau}*
-        - Số điện thoại: **${jsonData.soDienThoai}**
-        - Mức độ quan tâm: **${jsonData.mucDoQuanTam}**
-
-        Vui lòng liên hệ lại khách hàng ngay!
+✨Một khách hàng mới vừa đăng ký với thông tin:
+✅Nhu cầu: ${jsonData.nhuCau}
+✅Số điện thoại: ${jsonData.soDienThoai}
+✅Mức độ quan tâm: **${jsonData.mucDoQuanTam}
+📞Vui lòng liên hệ lại khách hàng ngay!
       `;
 
       try {
