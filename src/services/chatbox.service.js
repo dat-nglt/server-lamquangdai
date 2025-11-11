@@ -109,15 +109,7 @@ export const analyzeUserMessageService = async (
     response.candidates[0].content.parts &&
     response.candidates[0].content.parts.length > 0
   ) {
-    try {
-      return JSON.parse(response.candidates[0].content.parts[0].text);
-    } catch (err) {
-      console.error(
-        "❌ Không thể parse JSON từ AI:",
-        response.candidates[0].content.parts[0].text
-      );
-      return { raw: response.candidates[0].content.parts[0].text };
-    }
+    return response.candidates[0].content.parts[0].text;
   } else {
     console.warn(`[AI] Phản hồi rỗng hoặc bị chặn cho user: ${userId}`);
     return "Không đủ dữ liệu phân tích";
