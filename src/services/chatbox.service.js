@@ -206,7 +206,7 @@ export const sentMessageForUserByIdService = async (
 
   try {
     const jsonData = JSON.parse(jsonString);
-    if (jsonData.daDuThongTin == "true") {
+    if (jsonData.soDienThoai && jsonData.nhuCau) {
       const dataCustomer = `
         🔔Thông báo khách hàng mới🔔
 
@@ -225,7 +225,7 @@ export const sentMessageForUserByIdService = async (
         console.log("Đã báo thông tin khách hàng đến Lead");
       }
     } else {
-      console.log('Chưa đầy đủ thông tin');
+      console.log("Chưa đầy đủ thông tin");
     }
     console.log(`Số điện thoại: ${jsonData.soDienThoai}`);
     console.log(`Nhu cầu: ${jsonData.nhuCau}`);
