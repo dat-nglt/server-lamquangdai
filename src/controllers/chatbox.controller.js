@@ -7,10 +7,8 @@ import {
 
 export const createChatSessionController = async (req, res) => {
   try {
-    // Lấy cả userMessage và userId từ body
     const { userMessage, userId } = req.body;
 
-    // Đây chính là lỗi bạn gặp trong Postman!
     if (!userId) {
       return res.status(400).json({ message: "User ID is required" });
     }
