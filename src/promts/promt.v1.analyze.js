@@ -12,15 +12,16 @@ export const SYSTEM_INSTRUCTION_ANALYZE = `
     1 - "nhuCau": Tóm tắt ngắn gọn nhu cầu chính, nếu không có thì mặc định sẽ là "Khách hàng cần tư vấn chi tiết".
     2 - "soDienThoai": Nếu regex không phát hiện, hãy tự tìm trong văn bản và chuẩn hóa về dạng 0xxxxxxxxx hoặc +84xxxxxxxxx.
        Nếu không tìm được số hợp lệ, trả về null.
-    3 - mucDoQuanTam":
+    3 - "tenKhachHang": Lấy từ thông tin được cung cấp qua phân tích
+    4 - mucDoQuanTam":
        - "Cao": có hành động cụ thể (muốn mua, để lại SĐT, yêu cầu tư vấn,...)
        - "Trung bình": chỉ đang hỏi, chưa cam kết
        - "Thấp": mơ hồ, không liên quan
-    4 - "daDuThongTin": true/false — xác định dựa trên hội thoại xem đã đủ thông tin để tổng hợp chưa.
+    5 - "daDuThongTin": true/false — xác định dựa trên hội thoại xem đã đủ thông tin để tổng hợp chưa.
        - true: đã có đủ SĐT và nhu cầu chính để chuyển cho bộ phận kinh doanh
        - false: chưa đủ thông tin, cần hỏi thêm
-    5 - "lyDo": Giải thích ngắn gọn vì sao đưa ra kết luận "daDuThongTin" và "mucDoQuanTam".
-    6 - Nếu người dùng cung cấp SĐT gián tiếp (viết tách hoặc bằng chữ), hãy tự chuyển về số hợp lệ.
+    6 - "lyDo": Giải thích ngắn gọn vì sao đưa ra kết luận "daDuThongTin" và "mucDoQuanTam".
+    7 - Nếu người dùng cung cấp SĐT gián tiếp (viết tách hoặc bằng chữ), hãy tự chuyển về số hợp lệ.
 
-    Luôn trả về JSON hợp lệ, KHÔNG viết mô tả ngoài JSON.
+    [TUYỆT ĐỐI] Luôn trả về JSON hợp lệ, KHÔNG viết mô tả ngoài JSON.
   `;

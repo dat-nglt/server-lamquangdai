@@ -14,6 +14,7 @@ const ai = new GoogleGenAI({ apiKey: API_KEY });
 // (Giữ nguyên analyzeUserMessageService, không cần sửa)
 export const analyzeUserMessageService = async (messageFromUser, UID) => {
   const phoneNumberFromUser = extractPhoneNumber(messageFromUser);
+  let displayName = "Anh/chị";
   let phoneInfo = null;
   if (phoneNumberFromUser && phoneNumberFromUser.length > 0) {
     phoneInfo = phoneNumberFromUser.join(", ");
@@ -22,10 +23,12 @@ export const analyzeUserMessageService = async (messageFromUser, UID) => {
 
   try {
     const latestMessageFromUID = await extractDisplayNameFromMessage(UID);
-    const displayName = latestMessageFromUID?.from_display_name || "Anh/chị";
+    displayName = latestMessageFromUID?.from_display_name;
     logger.info(`Tên người dùng: ${displayName}`);
   } catch (error) {
-    logger.error(`[Analyze] Lỗi lấy tên người dùng ${UID}: ${error.message}`);
+    logger.warn(
+      `Không thể xác định tên người dùng - Giá trị mặc định: Anh/chị`
+    );
   }
 
   const chat = ai.chats.create({
@@ -37,7 +40,7 @@ export const analyzeUserMessageService = async (messageFromUser, UID) => {
 
   const conversationHistory = conversationService.getConversationHistory(UID);
   const prompt = `
-  Dưới đây là hội thoại trước đó (nếu có):
+  Dưới đây là hội thoại trước đó với khách hàng (nếu có):
   ${
     conversationHistory.length
       ? conversationService.getFormattedHistory(UID)
@@ -49,8 +52,9 @@ export const analyzeUserMessageService = async (messageFromUser, UID) => {
       ? `Số điện thoại phát hiện qua regex: ${phoneInfo}`
       : "Regex chưa phát hiện được số điện thoại."
   }
+
   Hãy phân tích và trả về JSON theo mẫu:
-  { "demand": "", "phone": "", "interest": "", "isEnoughInfo": false, "reason": "" }
+  { "nhuCau": "", "tenKhachHang": ${displayName} "soDienThoai": "", "mucDoQuanTam": "", "daDuThongTin": false, "lyDo": "" }
   `;
 
   // Thêm try...catch ở đây để nó cũng ném lỗi 503 nếu có

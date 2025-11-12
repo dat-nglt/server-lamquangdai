@@ -52,9 +52,10 @@ const worker = new Worker(
       // 3. Gửi thông tin Lead (nếu phân tích thành công)
       if (jsonData && jsonData.soDienThoai && jsonData.nhuCau) {
         const dataCustomer = `
-✅Nhu cầu: ${jsonData.nhuCau}
-✅Số điện thoại: ${jsonData.soDienThoai}
-✅Mức độ quan tâm: ${jsonData.mucDoQuanTam}
+- Nhu cầu: ${jsonData.nhuCau}
+- Tên zalo khách hàng: ${jsonData.tenKhachHang}
+- Số điện thoại: ${jsonData.soDienThoai}
+- Mức độ quan tâm: ${jsonData.mucDoQuanTam}
 📞Vui lòng phân bổ liên hệ lại khách hàng ngay!
       `;
         try {
