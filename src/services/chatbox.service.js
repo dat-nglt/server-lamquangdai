@@ -214,6 +214,7 @@ export const sentMessageForUserByIdService = async (UID, messageFromUser) => {
 
   // 6. Gửi tin nhắn trả lời cho Zalo
   const url = `${ZALO_API_BASE_URL}/v3.0/oa/message/cs`;
+  console.log(ACCESS_TOKEN);
   const payload = {
     recipient: { user_id: UID },
     message: { text: messageFromAI },
