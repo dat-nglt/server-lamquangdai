@@ -54,7 +54,7 @@ export const analyzeUserMessageService = async (messageFromUser, UID) => {
   }
 
   Hãy phân tích và trả về JSON theo mẫu:
-  { "nhuCau": "", "tenKhachHang": ${displayName} "soDienThoai": "", "mucDoQuanTam": "", "daDuThongTin": false, "lyDo": "" }
+  { "nhuCau": "", "tenKhachHang": ${displayName}, "soDienThoai": "", "mucDoQuanTam": "", "daDuThongTin": false, "lyDo": "" }
   `;
 
   // Thêm try...catch ở đây để nó cũng ném lỗi 503 nếu có
