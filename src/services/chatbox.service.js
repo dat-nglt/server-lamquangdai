@@ -39,7 +39,7 @@ export const analyzeUserMessageService = async (
 
   // 2️⃣ Tự động trích xuất số điện thoại bằng regex trước
   const phoneNumberFromUser = extractPhoneNumber(messageFromUser);
-
+  let phoneInfo = null;
   if (phoneNumberFromUser && phoneNumberFromUser.length > 0) {
     let phoneInfo = phoneNumberFromUser.join(", ");
     console.log(`[Data] 📞 Phát hiện SĐT: ${phoneInfo}`);
@@ -150,7 +150,6 @@ export const sentMessageForUserByIdService = async (UID, messageFromUser) => {
     throw new Error("UID and Text message are required");
   }
 
-  // 2. THÊM VÀO: Lưu tin nhắn người dùng vào lịch sử
   conversationService.addMessage(UID, "user", messageFromUser);
 
   if (UID !== "7365147034329534561") {
@@ -158,48 +157,51 @@ export const sentMessageForUserByIdService = async (UID, messageFromUser) => {
     return;
   }
 
-  // 3. Phân tích tin nhắn với lịch sử đầy đủ
-  const analyzeUserMessageResult = await analyzeUserMessageService(
-    messageFromUser,
-    UID // Truyền UID để lấy lịch sử
-  );
-
-  const analyzeUserMessageJSON = analyzeUserMessageResult
-    .replace("```json", "")
-    .replace("```", "")
-    .trim();
-
+  let jsonData = null; // Khởi tạo jsonData là null
   try {
-    const jsonData = JSON.parse(analyzeUserMessageJSON);
-    if (jsonData.soDienThoai && jsonData.nhuCau) {
-      const dataCustomer = `
+    const analyzeUserMessageResult = await analyzeUserMessageService(
+      messageFromUser,
+      UID // Truyền UID để lấy lịch sử
+    );
+
+    const analyzeUserMessageJSON = analyzeUserMessageResult
+      .replace("```json", "")
+      .replace("```", "")
+      .trim();
+
+    // Thử parse JSON
+    jsonData = JSON.parse(analyzeUserMessageJSON);
+  } catch (analyzeError) {
+    logger.error(
+      "Lỗi khi phân tích tin nhắn (analyzeUserMessageService):",
+      analyzeError
+    );
+  }
+
+  // Logic kiểm tra và gửi thông tin về Lead
+  // Chỉ chạy nếu jsonData đã được parse thành công
+  if (jsonData && jsonData.soDienThoai && jsonData.nhuCau) {
+    const dataCustomer = `
 ✅Nhu cầu: ${jsonData.nhuCau}
-
 ✅Số điện thoại: ${jsonData.soDienThoai}
-
 ✅Mức độ quan tâm: ${jsonData.mucDoQuanTam}
-
 📞Vui lòng phân bổ liên hệ lại khách hàng ngay!
       `;
-      try {
-        const response = await informationForwardingSynthesisService(
-          dataCustomer
-        );
-        if (response.message === "Success") {
-          logger.info("Đã báo thông tin khách hàng đến Lead");
-        }
-      } catch (error) {
-        logger.error(error);
+    try {
+      const response = await informationForwardingSynthesisService(
+        dataCustomer
+      );
+      if (response.message === "Success") {
+        logger.info("Đã báo thông tin khách hàng đến Lead");
       }
-    } else {
-      logger.warn("Chưa đầy đủ thông tin");
+    } catch (forwardError) {
+      logger.error("Lỗi khi gửi thông tin cho Lead:", forwardError);
     }
-    logger.info(`Số điện thoại: ${jsonData.soDienThoai}`);
-    logger.info(`Nhu cầu: ${jsonData.nhuCau}`);
-    logger.info(`Đủ thông tin: ${jsonData.daDuThongTin}`);
-  } catch (e) {
-    logger.error("Lỗi parse JSON:", e);
-    logger.info("Chuỗi sau khi replace:", analyzeUserMessageJSON); // In ra để kiểm tra
+  } else {
+    // Nếu jsonData là null (do lỗi) hoặc không đủ thông tin
+    logger.warn(
+      "Chưa đầy đủ thông tin hoặc lỗi phân tích, bỏ qua bước gửi Lead."
+    );
   }
 
   logger.info(`UID [${UID}]: ${messageFromUser}`);
@@ -214,7 +216,7 @@ export const sentMessageForUserByIdService = async (UID, messageFromUser) => {
 
   // 6. Gửi tin nhắn trả lời cho Zalo
   const url = `${ZALO_API_BASE_URL}/v3.0/oa/message/cs`;
-  console.log(ACCESS_TOKEN);
+  logger.warn(ACCESS_TOKEN);
   const payload = {
     recipient: { user_id: UID },
     message: { text: messageFromAI },
