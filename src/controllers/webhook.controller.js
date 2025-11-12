@@ -21,16 +21,16 @@ export const handleZaloWebhook = async (req, res) => {
       return res.status(200).send("OK (Test user ignored)");
     }
 
-    // 2. Gửi tin nhắn "chờ" (Không cần await - Fire and Forget)
-    sendZaloMessage(
-      UID,
-      "Dạ em nhận được tin nhắn rồi. Anh/chị vui lòng cho em thông tin số điện thoại để bộ phận Kinh doanh liên hệ tư vấn trực tiếp cho mình ạ."
-    ).catch((err) => {
-      // Ghi log nếu gửi tin "chờ" thất bại, nhưng không dừng luồng chính 
-      logger.error(
-        `[Webhook] Lỗi khi gửi tin "chờ" đến ${UID}: ${err.message}`
-      );
-    });
+    // // 2. Gửi tin nhắn "chờ" (Không cần await - Fire and Forget)
+    // sendZaloMessage(
+    //   UID,
+    //   "Dạ"
+    // ).catch((err) => {
+    //   // Ghi log nếu gửi tin "chờ" thất bại, nhưng không dừng luồng chính
+    //   logger.error(
+    //     `[Webhook] Lỗi khi gửi tin "chờ" đến ${UID}: ${err.message}`
+    //   );
+    // });
 
     // 3. Thêm job vào hàng đợi (Nhà bếp)
     await zaloChatQueue.add("process-message", {
