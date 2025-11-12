@@ -39,6 +39,8 @@ export const analyzeUserMessageService = async (messageFromUser, UID) => {
   });
 
   const conversationHistory = conversationService.getConversationHistory(UID);
+  logger.error(displayName);
+
   const prompt = `
   Dưới đây là hội thoại trước đó với khách hàng (nếu có):
   ${
