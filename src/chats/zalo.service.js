@@ -59,7 +59,7 @@ export const extractDisplayNameFromMessage = async (UID) => {
   };
 
   try {
-    const response = await axios.post(url, {}, { headers });
+    const response = await axios.get(url, {}, { headers });
     const messages = response.data?.data || [];
     const latestMessage = messages[0] || null;
 
