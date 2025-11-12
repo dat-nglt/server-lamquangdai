@@ -48,15 +48,39 @@ export const analyzeUserMessageService = async (messageFromUser, UID) => {
       ? conversationService.getFormattedHistory(UID)
       : "(Chưa có hội thoại trước đó)"
   }
+  
   Tin nhắn mới nhất của người dùng: "${messageFromUser}"
-  ${
-    phoneInfo
-      ? `Số điện thoại phát hiện qua regex: ${phoneInfo}`
-      : "Regex chưa phát hiện được số điện thoại."
+  
+  ---
+  **Thông tin đã biết:**
+  * Tên khách hàng (từ hệ thống/lịch sử): "${displayName}"
+  * Số điện thoại (từ regex): ${
+    phoneInfo ? `"${phoneInfo}"` : "(Chưa phát hiện)"
   }
 
-  Hãy phân tích và trả về JSON theo mẫu:
-  { "nhuCau": "", "tenKhachHang": ${displayName}, "soDienThoai": "", "mucDoQuanTam": "", "daDuThongTin": false, "lyDo": "" }
+  ---
+  **Nhiệm vụ:**
+  Hãy phân tích tin nhắn mới nhất dựa trên bối cảnh hội thoại và thông tin đã biết.
+  Trả về một đối tượng JSON duy nhất theo mẫu sau.
+
+  **Lưu ý quan trọng khi điền vào mẫu:**
+  1.  **tenKhachHang:** Ưu tiên sử dụng tên từ hệ thống ("${displayName}"). Tuy nhiên, nếu người dùng tự xưng tên MỚI hoặc khác trong tin nhắn mới nhất (ví dụ: "Mình tên là Minh"), hãy cập nhật bằng tên mới đó.
+  2.  **soDienThoai:** Ưu tiên số điện thoại từ regex (${
+    phoneInfo ? `"${phoneInfo}"` : `""`
+  }). Nếu regex không phát hiện được, nhưng người dùng cung cấp số điện thoại rõ ràng trong tin nhắn mới nhất, hãy trích xuất số đó.
+  3.  **nhuCau:** Tóm tắt ngắn gọn nhu cầu chính (ví dụ: "Hỏi về giá sản phẩm X", "Khiếu nại", "Cần tư vấn").
+  4.  **daDuThongTin:** Đặt là \`true\` nếu bạn đã có cả (1) nhuCau, (2) tenKhachHang, VÀ (3) soDienThoai. Nếu thiếu bất kỳ thông tin nào trong ba thông tin này, hãy đặt là \`false\`.
+  5.  **lyDo:** Nếu \`daDuThongTin\` là \`false\`, giải thích ngắn gọn thông tin nào còn thiếu (ví dụ: "Thiếu số điện thoại", "Chưa rõ nhu cầu").
+
+  **Mẫu JSON (Chỉ trả về JSON này):**
+  {
+    "nhuCau": "",
+    "tenKhachHang": "${displayName}",
+    "soDienThoai": ${phoneInfo ? `"${phoneInfo}"` : `""`},
+    "mucDoQuanTam": "",
+    "daDuThongTin": false,
+    "lyDo": ""
+  }
   `;
 
   // Thêm try...catch ở đây để nó cũng ném lỗi 503 nếu có
