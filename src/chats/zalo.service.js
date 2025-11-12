@@ -60,10 +60,18 @@ export const extractDisplayNameFromMessage = async (UID) => {
 
   try {
     const response = await axios.post(url, {}, { headers });
+    const messages = response.data?.data || [];
+    const latestMessage = messages[0] || null;
+
+    if (!latestMessage) {
+      logger.warn(`[Zalo API] UID ${UID} chưa có tin nhắn nào`);
+      return null;
+    }
+
     logger.info(
-      `Đã trích xuất thông tin tin nhắn từ UID: [${response.data[0]}]`
+      `Đã trích xuất tin nhắn từ UID ${UID}: ${latestMessage.from_display_name}`
     );
-    return response.data[0];
+    return latestMessage;
   } catch (error) {
     logger.error(
       `Zalo API Error (extractDisplayNameFromMessage for ${UID}):`,
