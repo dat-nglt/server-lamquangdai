@@ -24,6 +24,7 @@
     "@google/genai": "^1.29.0",
     "axios": "^1.13.2",
     "bcryptjs": "^2.4.3",
+    "bullmq": "^5.63.0",
     "compression": "^1.8.1",
     "cors": "^2.8.5",
     "docker": "^1.0.0",

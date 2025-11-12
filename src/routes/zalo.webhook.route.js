@@ -1,8 +1,8 @@
 import express from "express";
-import { webhookController } from "../controllers/webhook.controller.js";
+import { handleZaloWebhook } from "../controllers/webhook.controller.js";
 
 const routeForWebhook = express.Router();
 
-routeForWebhook.post("/", webhookController);
+routeForWebhook.post("/", handleZaloWebhook);
 
 export default routeForWebhook;
