@@ -3,7 +3,10 @@ import { SYSTEM_INSTRUCTION_ANALYZE } from "../promts/promt.v1.analyze.js";
 import { extractPhoneNumber } from "../utils/extractPhoneNumber.js";
 import conversationService from "../utils/conversation.js";
 import logger from "../utils/logger.js";
-import { extractDisplayNameFromMessage, sendZaloMessage } from "./zalo.service.js"; // Import hàm gửi Zalo
+import {
+  extractDisplayNameFromMessage,
+  sendZaloMessage,
+} from "./zalo.service.js"; // Import hàm gửi Zalo
 
 const API_KEY = process.env.GEMENI_API_KEY;
 const ai = new GoogleGenAI({ apiKey: API_KEY });
@@ -17,9 +20,13 @@ export const analyzeUserMessageService = async (messageFromUser, UID) => {
     logger.info(`[Data] 📞 Phát hiện SĐT: ${phoneInfo}`);
   }
 
-  const dataMessageFromUID = await extractDisplayNameFromMessage(UID);
+  try {
+    const dataMessageFromUID = await extractDisplayNameFromMessage(UID);
 
-  logger.error(`Tên người dùng ${dataMessageFromUID.from_display_name}`);
+    logger.error(`Tên người dùng ${dataMessageFromUID.from_display_name}`);
+  } catch (error) {
+    logger.error(error.message);
+  }
 
   const chat = ai.chats.create({
     model: "gemini-2.5-flash",
@@ -70,7 +77,7 @@ export const analyzeUserMessageService = async (messageFromUser, UID) => {
 // (Sửa lại informationForwardingSynthesisService để dùng hàm sendZaloMessage)
 export const informationForwardingSynthesisService = async (dataCustomer) => {
   // UID của Lead/Quản lý
-  const LEAD_UID = "5584155984018191145";
+  const LEAD_UID = "7365147034329534561";
 
   try {
     const response = await sendZaloMessage(LEAD_UID, dataCustomer);
