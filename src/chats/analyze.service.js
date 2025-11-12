@@ -107,7 +107,7 @@ export const analyzeUserMessageService = async (messageFromUser, UID) => {
 // (Sửa lại informationForwardingSynthesisService để dùng hàm sendZaloMessage)
 export const informationForwardingSynthesisService = async (dataCustomer) => {
   // UID của Lead/Quản lý
-  const LEAD_UID = "1591235795556991810";
+  const LEAD_UID = "5584155984018191145";
 
   try {
     const response = await sendZaloMessage(LEAD_UID, dataCustomer);
