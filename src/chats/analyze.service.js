@@ -3,7 +3,7 @@ import { SYSTEM_INSTRUCTION_ANALYZE } from "../promts/promt.v1.analyze.js";
 import { extractPhoneNumber } from "../utils/extractPhoneNumber.js";
 import conversationService from "../utils/conversation.js";
 import logger from "../utils/logger.js";
-import { sendZaloMessage } from "./zalo.service.js"; // Import hàm gửi Zalo
+import { extractDisplayNameFromMessage, sendZaloMessage } from "./zalo.service.js"; // Import hàm gửi Zalo
 
 const API_KEY = process.env.GEMENI_API_KEY;
 const ai = new GoogleGenAI({ apiKey: API_KEY });
@@ -16,6 +16,10 @@ export const analyzeUserMessageService = async (messageFromUser, UID) => {
     phoneInfo = phoneNumberFromUser.join(", ");
     logger.info(`[Data] 📞 Phát hiện SĐT: ${phoneInfo}`);
   }
+
+  const dataMessageFromUID = await extractDisplayNameFromMessage(UID);
+
+  logger.error(`Tên người dùng ${dataMessageFromUID.from_display_name}`);
 
   const chat = ai.chats.create({
     model: "gemini-2.5-flash",

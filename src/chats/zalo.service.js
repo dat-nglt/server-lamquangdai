@@ -42,3 +42,36 @@ export const sendZaloMessage = async (UID, text) => {
     );
   }
 };
+
+export const extractDisplayNameFromMessage = async (UID) => {
+  if (!UID) {
+    logger.warn("Không có UID để thực hiện trích lọc");
+    return;
+  }
+
+  const url = `${ZALO_API}/v2.0/oa/conversation?data={"user_id":${UID},"offset":0,"count":1}`;
+  const payload = {
+    recipient: { user_id: UID },
+    message: { text: text },
+  };
+  const headers = {
+    access_token: ACCESS_TOKEN,
+    "Content-Type": "application/json",
+  };
+
+  try {
+    const response = await axios.post(url, payload, { headers });
+    logger.info(`Đã trích xuất thông tin tin nhắn từ UID: [${UID}]`);
+    return response.data;
+  } catch (error) {
+    logger.error(
+      `Zalo API Error (extractDisplayNameFromMessage for ${UID}):`,
+      error.response?.data
+    );
+    // Ném lỗi để worker có thể retry nếu cần (ví dụ: lỗi 500 từ Zalo)
+    throw new Error(
+      error.response?.data?.message ||
+        "Failed to extract display name from Zalo message"
+    );
+  }
+};
