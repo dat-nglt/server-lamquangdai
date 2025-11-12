@@ -1,5 +1,5 @@
 import {
-  getAllMessageByUserIdService,
+  getAllMessageByUIDService,
   getAllRecentlyMessageService,
   handleChatService,
   sentMessageForUserByIdService,
@@ -51,7 +51,7 @@ export const getAllMessageByUserIdController = async (req, res) => {
     // Lấy offset và count từ query string
     const { offset, count } = req.query;
 
-    const userMessageDataFromOA = await getAllMessageByUserIdService(
+    const userMessageDataFromOA = await getAllMessageByUIDService(
       userId,
       offset,
       count
