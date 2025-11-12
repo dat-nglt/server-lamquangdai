@@ -52,14 +52,12 @@ const worker = new Worker(
       // 3. Gửi thông tin Lead (nếu phân tích thành công)
       if (jsonData && jsonData.soDienThoai && jsonData.nhuCau) {
         console.log(jsonData);
-        
-        const dataCustomer = `
-- Nhu cầu: ${jsonData.nhuCau}
-- Tên zalo khách hàng: ${jsonData.tenKhachHang}
+
+        const dataCustomer = `- Nhu cầu: ${jsonData.nhuCau}
+- Tên zalo khách hàng: ${jsonData.tenKhachHang || "Anh/chị"}
 - Số điện thoại: ${jsonData.soDienThoai}
 - Mức độ quan tâm: ${jsonData.mucDoQuanTam}
-📞Vui lòng phân bổ liên hệ lại khách hàng ngay!
-      `;
+📞Vui lòng phân bổ liên hệ lại khách hàng ngay!`;
         try {
           await informationForwardingSynthesisService(dataCustomer);
           logger.info(
