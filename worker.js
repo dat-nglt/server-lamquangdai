@@ -51,6 +51,8 @@ const worker = new Worker(
 
       // 3. Gửi thông tin Lead (nếu phân tích thành công)
       if (jsonData && jsonData.soDienThoai && jsonData.nhuCau) {
+        console.log(jsonData);
+        
         const dataCustomer = `
 - Nhu cầu: ${jsonData.nhuCau}
 - Tên zalo khách hàng: ${jsonData.tenKhachHang}
