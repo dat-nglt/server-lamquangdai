@@ -1,10 +1,7 @@
-// config/logger.js
 import winston from "winston";
-// Import module để xoay vòng log file hàng ngày
 import "winston-daily-rotate-file";
 import dotenv from "dotenv";
 
-// Tải biến môi trường từ file .env
 dotenv.config();
 
 // Destructuring các hàm định dạng từ winston.format để sử dụng dễ hơn
@@ -24,7 +21,6 @@ const logger = winston.createLogger({
     timestamp({ format: "YYYY-MM-DD HH:mm:ss" }), // Định dạng thời gian cho log
     logFormat
   ),
-  // Định nghĩa các transport (nơi log sẽ được ghi ra)
   transports: [
     // Transport cho Console: log sẽ được hiển thị trên terminal
     new winston.transports.Console({
@@ -71,7 +67,6 @@ const logger = winston.createLogger({
   rejectionHandlers: [
     new winston.transports.File({ filename: "logs/rejections.log" }),
     new winston.transports.Console({
-      // Tái sử dụng định dạng để log ra console cho đẹp
       format: combine(colorize(), logFormat),
     }),
   ],

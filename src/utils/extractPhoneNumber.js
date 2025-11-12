@@ -27,15 +27,12 @@ export const extractPhoneNumber = (messageFromUser) => {
   // 4. Xử lý và chuẩn hóa kết quả
   if (matches) {
     // `matches` là một mảng các SĐT còn "rác" (ví dụ: ["(090) 123-4567", "84.987.654.321"])
-    // Chúng ta dùng .map() để "làm sạch" từng SĐT.
     return matches.map((phone) => {
       // Loại bỏ tất cả các ký tự không phải là số (hoặc dấu +)
       // Cách đơn giản nhất là loại bỏ các ký tự phân cách đã cho phép
       return phone.replace(/[\s.\-()]/g, "");
     });
-    // Kết quả trả về sẽ là: ["0901234567", "84987654321"]
   } else {
-    // Không tìm thấy gì, trả về mảng rỗng thay vì số 2.
     return [];
   }
 };

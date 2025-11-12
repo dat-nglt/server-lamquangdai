@@ -41,8 +41,6 @@ export const analyzeUserMessageService = async (
   const conversationHistory =
     conversationService.getConversationHistory(userId);
 
-  console.log(`Lịch sử trò chuyện: ${conversationHistory}`);
-
   // 2️⃣ Tự động trích xuất số điện thoại bằng regex trước
   const phoneNumbers = extractPhoneNumber(messageFromUser);
   let phoneInfo = null;
@@ -277,7 +275,8 @@ export const sentMessageForUserByIdService = async (
 
 export const informationForwardingSynthesisService = async (
   dataCustomer,
-  userId = "1591235795556991810"
+  // userId = "1591235795556991810"
+  userId = "7365147034329534561"
 ) => {
   const url = `${ZALO_API_BASE_URL}/v3.0/oa/message/cs`;
   const payload = {

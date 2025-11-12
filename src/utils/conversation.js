@@ -5,24 +5,22 @@
 const conversations = new Map();
 const maxHistoryLength = 20;
 
-// --- Định nghĩa các hàm ---
-
 /**
  * Lấy lịch sử trò chuyện cho một người dùng.
  */
-const getConversationHistory = (userId) => {
-  return conversations.get(userId) || [];
+const getConversationHistory = (UID) => {
+  return conversations.get(UID) || [];
 };
 
 /**
  * Thêm một tin nhắn vào lịch sử của người dùng.
  */
-const addMessage = (userId, role, message) => {
-  if (!conversations.has(userId)) {
-    conversations.set(userId, []);
+const addMessage = (UID, role, message) => {
+  if (!conversations.has(UID)) {
+    conversations.set(UID, []);
   }
 
-  const history = conversations.get(userId);
+  const history = conversations.get(UID);
   const messageEntry = {
     role,
     message,
@@ -42,8 +40,8 @@ const addMessage = (userId, role, message) => {
 /**
  * Lấy lịch sử đã định dạng (string).
  */
-const getFormattedHistory = (userId) => {
-  const history = getConversationHistory(userId);
+const getFormattedHistory = (UID) => {
+  const history = getConversationHistory(UID);
   return history.map((entry) => `${entry.role}: ${entry.message}`).join("\n");
 };
 
@@ -51,8 +49,8 @@ const getFormattedHistory = (userId) => {
  * Xóa lịch sử của một người dùng.
  * (Hữu ích nếu bạn muốn "xóa sau khi lấy thông tin")
  */
-const clearHistory = (userId) => {
-  conversations.delete(userId);
+const clearHistory = (UID) => {
+  conversations.delete(UID);
 };
 
 /**
@@ -61,8 +59,6 @@ const clearHistory = (userId) => {
 const getActiveConversationsCount = () => {
   return conversations.size;
 };
-
-// --- Tạo và Export Service ---
 
 /**
  * Tập hợp tất cả các hàm thành một đối tượng "service" duy nhất.

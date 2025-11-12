@@ -1,16 +1,15 @@
 // Cấu hình cho Sequelize CLI (migration, seed, v.v.)
 
 import { Sequelize } from "sequelize";
-import { env } from "./env.js";
 import logger from "../utils/logger.js";
 
 export const sequelize = new Sequelize(
-  env.DB_NAME,
-  env.DB_USER,
-  env.DB_PASSWORD,
+  process.env.DB_NAME,
+  process.env.DB_USER,
+  process.env.DB_PASSWORD,
   {
-    host: env.DB_HOST,
-    port: env.DB_PORT,
+    host: process.env.DB_HOST,
+    port: process.env.DB_PORT,
     dialect: "postgres",
     logging: false,
     pool: {
