@@ -22,10 +22,10 @@ export const analyzeUserMessageService = async (messageFromUser, UID) => {
 
   try {
     const dataMessageFromUID = await extractDisplayNameFromMessage(UID);
-
-    logger.error(`Tên người dùng ${dataMessageFromUID.from_display_name}`);
+    const displayName = dataMessageFromUID?.from_display_name || "Không rõ";
+    logger.info(`Tên người dùng: ${displayName}`);
   } catch (error) {
-    logger.error(error.message);
+    logger.error(`[Analyze] Lỗi lấy tên người dùng ${UID}: ${error.message}`);
   }
 
   const chat = ai.chats.create({

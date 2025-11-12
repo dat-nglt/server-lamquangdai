@@ -51,6 +51,8 @@ export const extractDisplayNameFromMessage = async (UID) => {
 
   const url = `${ZALO_API}/v2.0/oa/conversation?data={"user_id":${UID},"offset":0,"count":1}`;
 
+  logger.info(url)
+
   const headers = {
     access_token: ACCESS_TOKEN,
     "Content-Type": "application/json",
@@ -58,8 +60,8 @@ export const extractDisplayNameFromMessage = async (UID) => {
 
   try {
     const response = await axios.post(url, {}, { headers });
-    logger.info(`Đã trích xuất thông tin tin nhắn từ UID: [${UID}]`);
-    return response.data;
+    logger.info(`Đã trích xuất thông tin tin nhắn từ UID: [${response}]`);
+    return response;
   } catch (error) {
     logger.error(
       `Zalo API Error (extractDisplayNameFromMessage for ${UID}):`,
