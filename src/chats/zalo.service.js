@@ -46,12 +46,14 @@ export const sendZaloMessage = async (UID, text) => {
 export const extractDisplayNameFromMessage = async (UID) => {
   if (!UID) {
     logger.warn("Không có UID để thực hiện trích lọc");
-    return;
+    return null;
   }
 
-  const url = `${ZALO_API}/v2.0/oa/conversation?data={"user_id":${UID},"offset":0,"count":1}`;
-
-  logger.info(url);
+  // Chuyển body JSON thành query string
+  const queryData = encodeURIComponent(
+    JSON.stringify({ user_id: UID, offset: 0, count: 1 })
+  );
+  const url = `${ZALO_API}/v2.0/oa/conversation?data=${queryData}`;
 
   const headers = {
     access_token: ACCESS_TOKEN,
@@ -59,7 +61,7 @@ export const extractDisplayNameFromMessage = async (UID) => {
   };
 
   try {
-    const response = await axios.get(url, {}, { headers });
+    const response = await axios.get(url, { headers }); // GET không có body
     const messages = response.data?.data || [];
     const latestMessage = messages[0] || null;
 
@@ -69,15 +71,19 @@ export const extractDisplayNameFromMessage = async (UID) => {
     }
 
     logger.info(
-      `Đã trích xuất tin nhắn từ UID ${UID}: ${latestMessage.from_display_name}`
+      `Đã trích xuất tin nhắn từ UID ${UID}: ${
+        latestMessage.from_display_name || "Không rõ tên"
+      }`
     );
     return latestMessage;
   } catch (error) {
     logger.error(
-      `Zalo API Error (extractDisplayNameFromMessage for ${UID}):`,
-      error.response?.data
+      `Zalo API Error (extractDisplayNameFromMessage for ${UID}): ${JSON.stringify(
+        error.response?.data,
+        null,
+        2
+      )}`
     );
-    // Ném lỗi để worker có thể retry nếu cần (ví dụ: lỗi 500 từ Zalo)
     throw new Error(
       error.response?.data?.message ||
         "Failed to extract display name from Zalo message"
