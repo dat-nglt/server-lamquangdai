@@ -66,13 +66,17 @@ export const handleChatService = async (userMessage, UID) => {
       errorMessage.includes("overloaded") ||
       errorMessage.includes("ECONNRESET")
     ) {
-      logger.warn(
+      logger.error(
         `[AI Error] Lỗi ${
-          error.status || "Mạng"
-        } (Quá tải/Mất kết nối). YÊU CẦU THỬ LẠI.`
+          error.status || "mạng"
+        } (Quá tải yêu cầu || Mất kết nối). YÊU CẦU THỬ LẠI.`
       );
       // NÉM LỖI này ra để Worker (BullMQ) bắt được và retry
-      throw new Error(`Lỗi 503/Mạng: Gemini quá tải/mất kết nối. Sẽ thử lại.`);
+      throw new Error(
+        `Lỗi ${
+          error.status || "mạng"
+        } (Quá tải yêu cầu || Mất kết nối). Sẽ thử lại tiến trình công việc ...`
+      );
     }
 
     // Các lỗi khác (400, 401...) là lỗi "cứng", không retry, trả về mặc định

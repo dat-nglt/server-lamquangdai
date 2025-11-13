@@ -22,7 +22,7 @@ export const analyzeUserMessageService = async (
   let phoneInfo = null;
   if (phoneNumberFromUser && phoneNumberFromUser.length > 0) {
     phoneInfo = phoneNumberFromUser.join(", ");
-    logger.info(`[Data] 📞 Phát hiện SĐT: ${phoneInfo}`);
+    logger.info(`[Data] Phát hiện SĐT: ${phoneInfo}`);
   }
 
   try {
@@ -101,7 +101,7 @@ export const analyzeUserMessageService = async (
     return textMessage;
   } catch (error) {
     logger.error(
-      `[AI Analyze Error] Lỗi khi gọi Gemini (Phân tích) cho user ${UID}:`,
+      `[AI Analyze Error] Lỗi khi gọi Gemini - Phân tích hội thoại giữa OA & [UID: ${UID}]`,
       error.message
     );
     // Ném lỗi này ra để worker bắt

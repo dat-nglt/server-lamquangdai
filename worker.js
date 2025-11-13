@@ -50,7 +50,7 @@ const worker = new Worker(
       } catch (analyzeError) {
         // Lỗi này (kể cả 503) cũng chỉ ghi log, không retry job
         logger.error(
-          `[Worker] Lỗi khi PHÂN TÍCH cho UID ${UID}, bỏ qua bước phân tích:`,
+          `[Worker] Lỗi phân tích dữ liệu cho [UID: ${UID}] - Bỏ qua bước phân tích`,
           analyzeError.message
         );
       } // 3. Gửi thông tin Lead (nếu phân tích thành công)
@@ -107,7 +107,7 @@ const worker = new Worker(
       }
 
       logger.info(
-        `[Worker] Đang gọi AI Chat cho UID [${UID}]: ${messageFromUser}`
+        `[Worker] Đang gọi Gemeni - Tiếp nhận & Phản hồi [UID: ${UID}] với nội dung tin nhắn: ${messageFromUser}`
       ); // 4. Xử lý chat với AI (Đây là bước có thể retry) // Hàm này sẽ NÉM LỖI 503 (như đã sửa ở trên)
 
       const messageFromAI = await handleChatService(messageFromUser, UID); // 5. Lưu phản hồi AI
@@ -117,12 +117,12 @@ const worker = new Worker(
 
       await sendZaloMessage(UID, messageFromAI, accessToken);
 
-      logger.info(`[Worker] Job [${job.id}] HOÀN THÀNH cho UID: ${UID}`);
+      logger.info(`[Worker] Tiến trình công việc [${job.id}] HOÀN THÀNH cho UID: ${UID}`);
     } catch (error) {
       // BẤT KỲ LỖI NÀO BỊ NÉM RA (chủ yếu là 503 từ handleChatService)
       // Sẽ bị bắt ở đây.
       logger.error(
-        `[Worker] Job [${job.id}] THẤT BẠI cho UID ${UID}: ${error.message}. Sẽ thử lại...`
+        `[Worker] Tiến trình công việc [${job.id}] THẤT BẠI cho UID ${UID}: ${error.message}. Đang chờ thử lại yêu cầu...`
       ); // Ném lỗi này ra ngoài để BullMQ biết và retry job
       throw error;
     }
@@ -136,6 +136,6 @@ worker.on("completed", (job) => {
 
 worker.on("failed", (job, err) => {
   logger.error(
-    `[Worker] Job ${job.id} thất bại sau ${job.attemptsMade} lần thử: ${err.message}`
+    `[Worker] Tiến trình công việc ${job.id} thất bại sau ${job.attemptsMade} lần thử: ${err.message}`
   );
 });
