@@ -25,6 +25,9 @@ const worker = new Worker(
   async (job) => {
     const { UID, messageFromUser } = job.data;
     const accessToken = await getValidAccessToken();
+    if (!accessToken) {
+      logger.error(`Không nhận được accessToken`);
+    }
     logger.info(`[Worker] Bắt đầu xử lý job [${job.id}] cho UID: ${UID}`);
 
     // *** TOÀN BỘ LOGIC CŨ GIẢI THUẬT NẰM TRONG NÀY ***
