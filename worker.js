@@ -36,9 +36,6 @@ const worker = new Worker(
       // 3. Lấy TẤT CẢ tin nhắn đang chờ
       const messages = await redisClient.lrange(pendingMessageKey, 0, -1);
 
-      // 4. Xóa key đó đi
-      await redisClient.del(pendingMessageKey);
-
       if (messages.length === 0) {
         logger.warn(
           `[Worker] Job ${job.id} cho UID ${UID} không có tin nhắn nào (có thể đã xử lý rồi). Bỏ qua.`
@@ -151,6 +148,8 @@ const worker = new Worker(
       await sendZaloMessage(UID, messageFromAI, accessToken);
 
       logger.info(`[Worker] Job [${job.id}] HOÀN THÀNH cho UID: ${UID}`);
+      // 4. Xóa key đó đi
+      await redisClient.del(pendingMessageKey);
     } catch (error) {
       // BẤT KỲ LỖI NÀO BỊ NÉM RA (chủ yếu là 503 từ handleChatService)
       // Sẽ bị bắt ở đây.
