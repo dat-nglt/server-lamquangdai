@@ -2,6 +2,7 @@
 
 import axios from "axios";
 import logger from "../utils/logger.js"; // Giả sử bạn có logger
+import db from "../models/index.js";
 
 const ZALO_API = process.env.ZALO_API_BASE_URL;
 
@@ -92,7 +93,7 @@ export const extractDisplayNameFromMessage = async (UID, accessToken) => {
 
 export const getValidAccessToken = async () => {
   // 1. Lấy token duy nhất từ DB (Singleton)
-  const tokenData = await db.ZaloTokens.findOne();
+  const tokenData = await db.ZaloToken.findOne();
 
   if (!tokenData) {
     throw new Error(
