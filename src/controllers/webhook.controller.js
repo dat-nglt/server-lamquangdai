@@ -33,8 +33,8 @@ export const handleZaloWebhook = async (req, res) => {
     const redisClient = await zaloChatQueue.client;
 
     // 2. Định nghĩa key/jobId cho người dùng này
-    const pendingMessageKey = `pending-msgs:${UID}`;
-    const debounceJobId = `debounce-job:${UID}`;
+    const pendingMessageKey = `pending-msgs-${UID}`;
+    const debounceJobId = `debounce-job-${UID}`;
 
     // 3. Lưu tin nhắn này vào danh sách chờ trong Redis
     // Chúng ta dùng RPUSH để thêm vào cuối danh sách
