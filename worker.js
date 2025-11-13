@@ -42,7 +42,7 @@ const worker = new Worker(
             }
 
             // 5. Gộp các tin nhắn lại
-            messageFromUser = messages.join(" \n "); // Gộp bằng ký tự xuống dòng
+            messageFromUser = messages.join(" "); // Gộp bằng ký tự xuống dòng
         } else {
             // Trường hợp job cũ không có cờ "isDebounced" (chỉ để dự phòng)
             logger.warn(
@@ -58,10 +58,13 @@ const worker = new Worker(
         if (!accessToken) {
             logger.error(`Không nhận được accessToken`);
         }
+        // logger.info(
+        //     `[Worker] Bắt đầu xử lý job [${job.id}] cho UID: ${UID} (Gộp ${
+        //         messageFromUser.split("\n").length
+        //     } tin nhắn)`
+        // );
         logger.info(
-            `[Worker] Bắt đầu xử lý job [${job.id}] cho UID: ${UID} (Gộp ${
-                messageFromUser.split("\n").length
-            } tin nhắn)`
+            `[Worker] Bắt đầu xử lý job [${job.id}] cho UID: ${UID}: ${messageFromUser}`
         );
 
         try {
