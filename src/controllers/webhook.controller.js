@@ -1,5 +1,5 @@
 import logger from "../utils/logger.js";
-import { zaloChatQueue } from "../chatsc/queue.service.js"; // Đảm bảo import queue
+import { zaloChatQueue } from "../chats/queue.service.js"; // Đảm bảo import queue
 
 // Thời gian chờ (debounce) tính bằng mili-giây
 const DEBOUNCE_DELAY = 20000; // 20 giây
