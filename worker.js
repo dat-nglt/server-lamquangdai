@@ -1,7 +1,7 @@
 import { Worker } from "bullmq";
 import logger from "./src/utils/logger.js";
-// Đảm bảo import conversationService từ file đã cập nhật (có getSentLeadPhone)
 import conversationService from "./src/utils/conversation.js";
+// ... (các import khác của bạn) ...
 import { handleChatService } from "./src/chats/chatbox.service.js";
 import {
   getValidAccessToken,
@@ -12,7 +12,6 @@ import {
   informationForwardingSynthesisService,
 } from "./src/chats/analyze.service.js";
 
-// Kết nối đến Redis (phải giống hệt file queue.service.js)
 const connection = {
   host: process.env.REDIS_HOST || "localhost",
   port: process.env.REDIS_PORT || 6379,
@@ -24,21 +23,61 @@ logger.info("[Worker] Đang khởi động và lắng nghe hàng đợi 'zalo-ch
 const worker = new Worker(
   "zalo-chat",
   async (job) => {
-    const { UID, messageFromUser } = job.data;
+    // --- [LOGIC DEBOUNCE MỚI] ---
+    // 1. Lấy data từ job
+    const { UID, isDebounced } = job.data;
+    let messageFromUser; // Biến này sẽ chứa tin nhắn cuối cùng (đã gộp)
+
+    if (isDebounced) {
+      // 2. Nếu là job gộp, lấy Redis client từ worker
+      const redisClient = await worker.client;
+      const pendingMessageKey = `pending-msgs:${UID}`;
+
+      // 3. Lấy TẤT CẢ tin nhắn đang chờ
+      const messages = await redisClient.lrange(pendingMessageKey, 0, -1);
+
+      // 4. Xóa key đó đi
+      await redisClient.del(pendingMessageKey);
+
+      if (messages.length === 0) {
+        logger.warn(
+          `[Worker] Job ${job.id} cho UID ${UID} không có tin nhắn nào (có thể đã xử lý rồi). Bỏ qua.`
+        );
+        return; // Hoàn thành job, không làm gì cả
+      }
+
+      // 5. Gộp các tin nhắn lại
+      messageFromUser = messages.join(" \n "); // Gộp bằng ký tự xuống dòng
+    } else {
+      // Trường hợp job cũ không có cờ "isDebounced" (chỉ để dự phòng)
+      logger.warn(
+        `[Worker] Job ${job.id} cho UID ${UID} không có cờ 'isDebounced'. Xử lý như job thường.`
+      );
+      messageFromUser = job.data.messageFromUser;
+    }
+
+    // --- [LOGIC XỬ LÝ CHÍNH BẮT ĐẦU TỪ ĐÂY] ---
+    // Mọi thứ bên dưới giữ nguyên, chỉ dùng biến `messageFromUser` đã gộp ở trên
+
     const accessToken = await getValidAccessToken();
     if (!accessToken) {
       logger.error(`Không nhận được accessToken`);
     }
-    logger.info(`[Worker] Bắt đầu xử lý job [${job.id}] cho UID: ${UID}`); // *** TOÀN BỘ LOGIC GIẢI THUẬT NẰM TRONG NÀY ***
+    logger.info(
+      `[Worker] Bắt đầu xử lý job [${job.id}] cho UID: ${UID} (Gộp ${
+        messageFromUser.split("\n").length
+      } tin nhắn)`
+    );
 
     try {
-      // 1. Lưu tin nhắn người dùng
-      conversationService.addMessage(UID, "user", messageFromUser); // 2. Phân tích tin nhắn (với try-catch riêng) // Chúng ta muốn: nếu phân tích lỗi, vẫn tiếp tục chat
+      // 1. Lưu tin nhắn (đã gộp)
+      // CHỈ LƯU 1 LẦN SAU KHI GỘP
+      conversationService.addMessage(UID, "user", messageFromUser); // 2. Phân tích tin nhắn (đã gộp)
 
       let jsonData = null;
       try {
         const analyzeResult = await analyzeUserMessageService(
-          messageFromUser,
+          messageFromUser, // Dùng biến đã gộp
           UID,
           accessToken
         );
@@ -48,47 +87,36 @@ const worker = new Worker(
           .trim();
         jsonData = JSON.parse(analyzeJSON);
       } catch (analyzeError) {
-        // Lỗi này (kể cả 503) cũng chỉ ghi log, không retry job
         logger.error(
-          `[Worker] Lỗi phân tích dữ liệu cho [UID: ${UID}] - Bỏ qua bước phân tích`,
+          `[Worker] Lỗi khi PHÂN TÍCH cho UID ${UID}:`,
           analyzeError.message
         );
-      } // 3. Gửi thông tin Lead (nếu phân tích thành công)
+      } // 3. Gửi thông tin Lead (Giữ nguyên logic kiểm tra SĐT của bạn)
 
       if (jsonData && jsonData.soDienThoai && jsonData.nhuCau) {
-        // [LOGIC MỚI] Kiểm tra SĐT đã được gửi đi trước đó chưa
         const previouslySentPhone = conversationService.getSentLeadPhone(UID);
-
-        // [LOGIC MỚI] So sánh SĐT vừa phân tích được với SĐT đã lưu
         if (
           previouslySentPhone &&
           previouslySentPhone === jsonData.soDienThoai
         ) {
-          // SĐT này đã được gửi rồi. Bỏ qua.
-          logger.info(
-            `[Worker] Đã gửi Lead cho UID ${UID} với SĐT ${previouslySentPhone} rồi. Bỏ qua...`
-          );
+          logger.info(`[Worker] Đã gửi Lead cho UID ${UID} rồi. Bỏ qua...`);
         } else {
-          // Đây là SĐT mới, hoặc SĐT đã thay đổi, hoặc lần đầu tiên.
-          // -> Tiến hành gửi Lead
           logger.info(
-            `[Worker] Gửi Lead cho UID ${UID}. SĐT mới/thay đổi: ${jsonData.soDienThoai}`
+            `[Worker] Gửi Lead cho UID ${UID}. SĐT mới: ${jsonData.soDienThoai}`
           );
-          console.log(jsonData); // In ra jsonData để kiểm tra
-
-          const dataCustomer = `- Nhu cầu: ${jsonData.nhuCau}
-- Tên zalo khách hàng: ${jsonData.tenKhachHang || "Anh/chị"}
-- Số điện thoại: ${jsonData.soDienThoai}
-- Mức độ quan tâm: ${jsonData.mucDoQuanTam}
-📞Vui lòng phân bổ liên hệ lại khách hàng ngay!`;
+          const dataCustomer = `- Nhu cầu: ${
+            jsonData.nhuCau
+          }\n- Tên zalo khách hàng: ${
+            jsonData.tenKhachHang || "Anh/chị"
+          }\n- Số điện thoại: ${jsonData.soDienThoai}\n- Mức độ quan tâm: ${
+            jsonData.mucDoQuanTam
+          }\n📞Vui lòng phân bổ liên hệ lại khách hàng ngay!`;
           try {
-            // [LOGIC MỚI] Thêm tham số thứ 4: jsonData.soDienThoai
-            const sentPhoneNumber = jsonData.soDienThoai;
             await informationForwardingSynthesisService(
               UID,
               dataCustomer,
               accessToken,
-              sentPhoneNumber // Truyền SĐT vào service
+              jsonData.soDienThoai
             );
             logger.info(
               `[Worker] Đã gửi thông tin Lead thành công cho UID: ${UID}`
@@ -97,9 +125,9 @@ const worker = new Worker(
             logger.error(
               `[Worker] Lỗi khi GỬI LEAD cho UID ${UID}:`,
               leadError.message
-            ); // Lỗi này cũng không retry job
+            );
           }
-        } // Đóng else của [LOGIC MỚI]
+        }
       } else {
         logger.warn(
           `[Worker] Chưa đủ thông tin Lead hoặc lỗi phân tích cho UID: ${UID}`
@@ -107,22 +135,27 @@ const worker = new Worker(
       }
 
       logger.info(
-        `[Worker] Đang gọi Gemeni - Tiếp nhận & Phản hồi [UID: ${UID}] với nội dung tin nhắn: ${messageFromUser}`
-      ); // 4. Xử lý chat với AI (Đây là bước có thể retry) // Hàm này sẽ NÉM LỖI 503 (như đã sửa ở trên)
+        `[Worker] Đang gọi AI Chat cho UID [${UID}] (Nội dung: ${messageFromUser.substring(
+          0,
+          50
+        )}...)`
+      ); // 4. Xử lý chat với AI (dùng tin đã gộp)
 
       const messageFromAI = await handleChatService(messageFromUser, UID); // 5. Lưu phản hồi AI
 
       conversationService.addMessage(UID, "model", messageFromAI);
-      logger.info(`[Worker] AI trả lời [${UID}]: ${messageFromAI}`); // 6. Gửi tin nhắn trả lời "thật" cho Zalo (Shipper đi giao)
+      logger.info(
+        `[Worker] AI trả lời [${UID}]: ${messageFromAI.substring(0, 50)}...`
+      ); // 6. Gửi tin nhắn trả lời "thật" cho Zalo
 
       await sendZaloMessage(UID, messageFromAI, accessToken);
 
-      logger.info(`[Worker] Tiến trình công việc [${job.id}] HOÀN THÀNH cho UID: ${UID}`);
+      logger.info(`[Worker] Job [${job.id}] HOÀN THÀNH cho UID: ${UID}`);
     } catch (error) {
       // BẤT KỲ LỖI NÀO BỊ NÉM RA (chủ yếu là 503 từ handleChatService)
       // Sẽ bị bắt ở đây.
       logger.error(
-        `[Worker] Tiến trình công việc [${job.id}] THẤT BẠI cho UID ${UID}: ${error.message}. Đang chờ thử lại yêu cầu...`
+        `[Worker] Job [${job.id}] THẤT BẠI cho UID ${UID}: ${error.message}. Sẽ thử lại...`
       ); // Ném lỗi này ra ngoài để BullMQ biết và retry job
       throw error;
     }
@@ -136,6 +169,6 @@ worker.on("completed", (job) => {
 
 worker.on("failed", (job, err) => {
   logger.error(
-    `[Worker] Tiến trình công việc ${job.id} thất bại sau ${job.attemptsMade} lần thử: ${err.message}`
+    `[Worker] Job ${job.id} thất bại sau ${job.attemptsMade} lần thử: ${err.message}`
   );
 });
