@@ -83,11 +83,12 @@ const worker = new Worker(
 📞Vui lòng phân bổ liên hệ lại khách hàng ngay!`;
           try {
             // [LOGIC MỚI] Thêm tham số thứ 4: jsonData.soDienThoai
+            const sentPhoneNumber = jsonData.soDienThoai;
             await informationForwardingSynthesisService(
               UID,
               dataCustomer,
               accessToken,
-              (phoneNumberSent = jsonData.soDienThoai) // Truyền SĐT vào service
+              sentPhoneNumber // Truyền SĐT vào service
             );
             logger.info(
               `[Worker] Đã gửi thông tin Lead thành công cho UID: ${UID}`
