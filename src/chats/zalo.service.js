@@ -90,3 +90,79 @@ export const extractDisplayNameFromMessage = async (UID) => {
     );
   }
 };
+
+export const getValidAccessToken = async () => {
+  // 1. Lấy token duy nhất từ DB (Singleton)
+  const tokenData = await db.ZaloTokens.findOne();
+
+  if (!tokenData) {
+    throw new Error(
+      "CRITICAL: Chưa có dữ liệu Token trong DB. Vui lòng Admin đăng nhập thủ công lần đầu!"
+    );
+  }
+
+  // 2. Kiểm tra thời gian hết hạn
+  // Mẹo: Nên refresh sớm hơn 5-10 phút (buffer time) để tránh lỗi mạng vào phút chót
+  const BUFFER_TIME = 24 * 60 * 60 * 1000; // 5 phút
+  const now = new Date().getTime();
+  const expireTime = new Date(tokenData.access_token_expires_at).getTime();
+
+  if (expireTime - now > BUFFER_TIME) {
+    return tokenData.access_token;
+  }
+
+  console.log("🔄 Zalo Token hết hạn, đang tự động refresh...");
+  return await refreshAccessToken(tokenData);
+};
+
+const refreshAccessToken = async (tokenRecord) => {
+  try {
+    // Cấu hình Request theo đúng ảnh tài liệu bạn gửi
+    const bodyParams = new URLSearchParams();
+    bodyParams.append("refresh_token", tokenRecord.refresh_token);
+    bodyParams.append("app_id", process.env.ZALO_APP_ID);
+    bodyParams.append("grant_type", "refresh_token");
+
+    const config = {
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        secret_key: process.env.ZALO_SECRET_KEY, // Quan trọng: Header theo ảnh curl
+      },
+    };
+
+    // Gọi POST request
+    const response = await axios.post(ZALO_AUTH_URL, bodyParams, config);
+    const data = response.data;
+
+    // Kiểm tra xem Zalo có trả về lỗi không
+    if (data.error) {
+      throw new Error(
+        `Zalo API Error: ${data.error_name} - ${data.error_description}`
+      );
+    }
+
+    // 4. Cập nhật vào Database (Cập nhật bản ghi hiện tại, không tạo mới)
+    tokenRecord.access_token = data.access_token;
+    tokenRecord.refresh_token = data.refresh_token; // Luôn lưu refresh token mới
+
+    // Tính toán thời gian hết hạn mới
+    // data.expires_in là giây (thường là 90000s = 25h)
+    const newExpireDate = new Date(Date.now() + Number(data.expires_in) * 1000);
+
+    // Refresh token hết hạn sau 3 tháng (tùy chính sách Zalo, ta cứ set dư ra hoặc theo logic của họ)
+    const newRefreshExpireDate = new Date(
+      Date.now() + 90 * 24 * 60 * 60 * 1000
+    );
+
+    tokenRecord.access_token_expires_at = newExpireDate;
+    tokenRecord.refresh_token_expires_at = newRefreshExpireDate;
+
+    await tokenRecord.save();
+
+    console.log("✅ Đã refresh token thành công!");
+    return data.access_token;
+  } catch (error) {
+    console.error("❌ Lỗi khi refresh Zalo Token:", error.message);
+    throw error;
+  }
+};

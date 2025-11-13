@@ -2,6 +2,9 @@ import { zaloChatQueue } from "../chats/queue.service.js";
 import { sendZaloMessage } from "../chats/zalo.service.js";
 import logger from "../utils/logger.js";
 
+const ADMIN_UID = "5584155984018191145";
+let isAiActive = true; // Mặc định là AI đang hoạt động
+
 // Hàm này là hàm chính xử lý webhook đến từ Zalo
 export const handleZaloWebhook = async (req, res) => {
   try {
@@ -47,3 +50,4 @@ export const handleZaloWebhook = async (req, res) => {
     res.status(500).send("Internal Server Error");
   }
 };
+
