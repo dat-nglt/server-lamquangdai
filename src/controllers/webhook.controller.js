@@ -23,7 +23,7 @@ export const handleZaloWebhook = async (req, res) => {
     ];
 
     // Test mode
-    if (ignoredUIDs.includes(UID)) {
+    if (!ignoredUIDs.includes(UID)) {
       logger.warn(
         `[Webhook] Bỏ qua tin nhắn từ [UID: ${UID} - ${messageFromUser}] `
       );
