@@ -16,9 +16,17 @@ export const handleZaloWebhook = async (req, res) => {
       return res.status(400).send("Invalid webhook data");
     }
 
+    const ignoredUIDs = [
+      "7365147034329534561", // UID Admin - Tấn Đạt
+      "6261117697809429940", // UID chị Yến
+      "5584155984018191145", // UID anh Bạc
+    ];
+
     // Test mode
-    if (UID !== "7365147034329534561") {
-      logger.warn(`[Webhook] Bỏ qua tin nhắn từ user test: ${UID}`);
+    if (ignoredUIDs.includes(UID)) {
+      logger.warn(
+        `[Webhook] Bỏ qua tin nhắn từ [UID: ${UID} - ${messageFromUser}] `
+      );
       return res.status(200).send("OK (Test user ignored)");
     }
 
