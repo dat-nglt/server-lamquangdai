@@ -68,6 +68,7 @@ const worker = new Worker(
 📞Vui lòng phân bổ liên hệ lại khách hàng ngay!`;
         try {
           await informationForwardingSynthesisService(
+            UID,
             dataCustomer,
             accessToken
           );
@@ -117,7 +118,7 @@ const worker = new Worker(
 );
 
 worker.on("completed", (job) => {
-  logger.info(`[Worker] Đã hoàn thành job ${job.id}`);
+  logger.info(`[Worker] Đã hoàn thành tác vụ ${job.id}`);
 });
 
 worker.on("failed", (job, err) => {

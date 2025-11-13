@@ -115,7 +115,7 @@ export const getValidAccessToken = async () => {
   const remainingMinutes = ((expireTime - now) / 1000 / 60).toFixed(2);
 
   logger.warn(
-    `[Zalo Token] ⚠️ Token sắp hết hạn . Kích hoạt Refresh tự động sẽ được thực thi sau ${remainingMinutes} phút nữa...`
+    `[Zalo Token] Token sắp hết hạn . Kích hoạt Refresh tự động sẽ được thực thi sau ${remainingMinutes} phút nữa...`
   );
   logger.warn(
     `[Zalo Token] Thời điểm hiện tại: ${new Date().toLocaleString()}`

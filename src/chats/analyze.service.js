@@ -111,6 +111,7 @@ export const analyzeUserMessageService = async (
 
 // (Sửa lại informationForwardingSynthesisService để dùng hàm sendZaloMessage)
 export const informationForwardingSynthesisService = async (
+  UID,
   dataCustomer,
   accessToken
 ) => {
@@ -121,6 +122,7 @@ export const informationForwardingSynthesisService = async (
   try {
     const response = await sendZaloMessage(LEAD_UID, dataCustomer, accessToken);
     logger.info(`Đã gửi thông tin khách hàng đến Lead [UID: ${LEAD_UID}]`);
+    conversationService.clearHistory(UID);
     return response; // Trả về phản hồi từ Zalo
   } catch (error) {
     logger.error(
