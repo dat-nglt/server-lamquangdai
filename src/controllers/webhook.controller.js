@@ -8,8 +8,6 @@ let isAiActive = true; // Mặc định là AI đang hoạt động
 // Hàm này là hàm chính xử lý webhook đến từ Zalo
 export const handleZaloWebhook = async (req, res) => {
   try {
-    // 1. Trích xuất thông tin (Tùy theo cấu trúc webhook của bạn)
-    // Giả sử:
     const UID = req.body?.sender?.id;
     const messageFromUser = req.body?.message?.text;
 
@@ -24,24 +22,15 @@ export const handleZaloWebhook = async (req, res) => {
       return res.status(200).send("OK (Test user ignored)");
     }
 
-    // // 2. Gửi tin nhắn "chờ" (Không cần await - Fire and Forget)
-    // sendZaloMessage(
-    //   UID,
-    //   "Dạ"
-    // ).catch((err) => {
-    //   // Ghi log nếu gửi tin "chờ" thất bại, nhưng không dừng luồng chính
-    //   logger.error(
-    //     `[Webhook] Lỗi khi gửi tin "chờ" đến ${UID}: ${err.message}`
-    //   );
-    // });
-
     // 3. Thêm job vào hàng đợi (Nhà bếp)
     await zaloChatQueue.add("process-message", {
       UID: UID,
       messageFromUser: messageFromUser,
     });
 
-    logger.info(`[Webhook] Đã nhận và đưa vào queue cho UID: ${UID}`);
+    logger.info(
+      `[Webhook] Đã nhận và đưa vào queue cho UID: ${UID} - ${messageFromUser}`
+    );
 
     // 4. Phản hồi 200 OK cho Zalo NGAY LẬP TỨC
     res.status(200).send("OK");
@@ -50,4 +39,3 @@ export const handleZaloWebhook = async (req, res) => {
     res.status(500).send("Internal Server Error");
   }
 };
-

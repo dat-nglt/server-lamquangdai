@@ -52,10 +52,6 @@ async function startServer() {
     const corsOptions = {
       origin: (origin, callback) => {
         // --- DÒNG DEBUG QUAN TRỌNG ---
-        // Log này sẽ cho bạn biết CHÍNH XÁC tên miền nào đang cố gắng gọi vào
-        console.log("CORS CHECK - INCOMING ORIGIN:", origin);
-        // ----------------------------
-
         if (!origin || allowedOrigins.includes(origin)) {
           callback(null, true);
         } else if (origin && zaloMiniAppRegex.test(origin)) {
