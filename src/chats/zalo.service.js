@@ -110,6 +110,11 @@ export const getValidAccessToken = async () => {
   const now = new Date().getTime();
   const expireTime = new Date(tokenData.access_token_expires_at).getTime();
 
+  logger.warn(BUFFER_TIME);
+  logger.warn(now);
+  logger.warn(expireTime);
+  logger.warn(tokenData.access_token);
+
   if (expireTime - now > BUFFER_TIME) {
     return tokenData.access_token;
   }
