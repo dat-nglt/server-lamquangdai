@@ -12,7 +12,7 @@ const API_KEY = process.env.GEMENI_API_KEY;
 const ai = new GoogleGenAI({ apiKey: API_KEY });
 
 // (Giữ nguyên analyzeUserMessageService, không cần sửa)
-export const analyzeUserMessageService = async (messageFromUser, UID) => {
+export const analyzeUserMessageService = async (messageFromUser, UID, accessToken) => {
   const phoneNumberFromUser = extractPhoneNumber(messageFromUser);
   let displayName = "Anh/chị";
   let phoneInfo = null;
@@ -22,7 +22,10 @@ export const analyzeUserMessageService = async (messageFromUser, UID) => {
   }
 
   try {
-    const latestMessageFromUID = await extractDisplayNameFromMessage(UID);
+    const latestMessageFromUID = await extractDisplayNameFromMessage(
+      UID,
+      accessToken
+    );
     displayName = latestMessageFromUID?.from_display_name;
     logger.info(`Tên người dùng: ${displayName}`);
   } catch (error) {
@@ -105,13 +108,16 @@ export const analyzeUserMessageService = async (messageFromUser, UID) => {
 };
 
 // (Sửa lại informationForwardingSynthesisService để dùng hàm sendZaloMessage)
-export const informationForwardingSynthesisService = async (dataCustomer) => {
+export const informationForwardingSynthesisService = async (
+  dataCustomer,
+  accessToken
+) => {
   // UID của Lead/Quản lý
   // const LEAD_UID = "5584155984018191145";
   const LEAD_UID = "7365147034329534561";
 
   try {
-    const response = await sendZaloMessage(LEAD_UID, dataCustomer);
+    const response = await sendZaloMessage(LEAD_UID, dataCustomer, accessToken);
     logger.info(`Đã gửi thông tin khách hàng đến Lead [UID: ${LEAD_UID}]`);
     return response; // Trả về phản hồi từ Zalo
   } catch (error) {

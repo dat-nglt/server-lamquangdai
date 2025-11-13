@@ -2,7 +2,10 @@ import { Worker } from "bullmq";
 import logger from "./src/utils/logger.js";
 import conversationService from "./src/utils/conversation.js";
 import { handleChatService } from "./src/chats/chatbox.service.js";
-import { sendZaloMessage } from "./src/chats/zalo.service.js";
+import {
+  getValidAccessToken,
+  sendZaloMessage,
+} from "./src/chats/zalo.service.js";
 import {
   analyzeUserMessageService,
   informationForwardingSynthesisService,
@@ -21,6 +24,7 @@ const worker = new Worker(
   "zalo-chat",
   async (job) => {
     const { UID, messageFromUser } = job.data;
+    const accessToken = await getValidAccessToken();
     logger.info(`[Worker] Bắt đầu xử lý job [${job.id}] cho UID: ${UID}`);
 
     // *** TOÀN BỘ LOGIC CŨ GIẢI THUẬT NẰM TRONG NÀY ***
@@ -34,7 +38,8 @@ const worker = new Worker(
       try {
         const analyzeResult = await analyzeUserMessageService(
           messageFromUser,
-          UID
+          UID,
+          accessToken
         );
         const analyzeJSON = analyzeResult
           .replace("```json", "")
@@ -59,7 +64,10 @@ const worker = new Worker(
 - Mức độ quan tâm: ${jsonData.mucDoQuanTam}
 📞Vui lòng phân bổ liên hệ lại khách hàng ngay!`;
         try {
-          await informationForwardingSynthesisService(dataCustomer);
+          await informationForwardingSynthesisService(
+            dataCustomer,
+            accessToken
+          );
           logger.info(
             `[Worker] Đã gửi thông tin Lead thành công cho UID: ${UID}`
           );
@@ -89,7 +97,7 @@ const worker = new Worker(
       logger.info(`[Worker] AI trả lời [${UID}]: ${messageFromAI}`);
 
       // 6. Gửi tin nhắn trả lời "thật" cho Zalo (Shipper đi giao)
-      await sendZaloMessage(UID, messageFromAI);
+      await sendZaloMessage(UID, messageFromAI, accessToken);
 
       logger.info(`[Worker] Job [${job.id}] HOÀN THÀNH cho UID: ${UID}`);
     } catch (error) {

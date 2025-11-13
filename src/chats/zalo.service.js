@@ -3,7 +3,6 @@
 import axios from "axios";
 import logger from "../utils/logger.js"; // Giả sử bạn có logger
 
-const ACCESS_TOKEN = process.env.ZALO_ACCESS_TOKEN;
 const ZALO_API = process.env.ZALO_API_BASE_URL;
 
 /**
@@ -11,7 +10,7 @@ const ZALO_API = process.env.ZALO_API_BASE_URL;
  * @param {string} UID - User ID của người nhận
  * @param {string} text - Nội dung tin nhắn
  */
-export const sendZaloMessage = async (UID, text) => {
+export const sendZaloMessage = async (UID, text, accessToken) => {
   if (!UID || !text) {
     logger.warn("Bỏ qua gửi tin Zalo vì thiếu UID hoặc text.");
     return;
@@ -23,7 +22,7 @@ export const sendZaloMessage = async (UID, text) => {
     message: { text: text },
   };
   const headers = {
-    access_token: ACCESS_TOKEN,
+    access_token: accessToken,
     "Content-Type": "application/json",
   };
 
@@ -43,7 +42,7 @@ export const sendZaloMessage = async (UID, text) => {
   }
 };
 
-export const extractDisplayNameFromMessage = async (UID) => {
+export const extractDisplayNameFromMessage = async (UID, accessToken) => {
   if (!UID) {
     logger.warn("Không có UID để thực hiện trích lọc");
     return null;
@@ -56,7 +55,7 @@ export const extractDisplayNameFromMessage = async (UID) => {
   const url = `${ZALO_API}/v2.0/oa/conversation?data=${queryData}`;
 
   const headers = {
-    access_token: ACCESS_TOKEN,
+    access_token: accessToken,
     "Content-Type": "application/json",
   };
 
