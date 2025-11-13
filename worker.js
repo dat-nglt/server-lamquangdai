@@ -27,12 +27,10 @@ const worker = new Worker(
     // 1. Lấy data từ job
     const { UID, isDebounced } = job.data;
     const redisClient = await worker.client;
+    const pendingMessageKey = `pending-msgs-${UID}`;
     let messageFromUser; // Biến này sẽ chứa tin nhắn cuối cùng (đã gộp)
 
     if (isDebounced) {
-      // 2. Nếu là job gộp, lấy Redis client từ worker
-      const pendingMessageKey = `pending-msgs-${UID}`;
-
       // 3. Lấy TẤT CẢ tin nhắn đang chờ
       const messages = await redisClient.lrange(pendingMessageKey, 0, -1);
 
