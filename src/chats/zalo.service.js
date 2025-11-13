@@ -7,6 +7,7 @@ import db from "../models/index.js";
 const { ZaloTokens } = db;
 
 const ZALO_API = process.env.ZALO_API_BASE_URL;
+const ZALO_AUTH_URL = process.env.ZALO_AUTH_URL;
 
 /**
  * Hàm gửi tin nhắn Zalo CS (Chăm sóc khách hàng)
@@ -105,7 +106,7 @@ export const getValidAccessToken = async () => {
 
   // 2. Kiểm tra thời gian hết hạn
   // Mẹo: Nên refresh sớm hơn 5-10 phút (buffer time) để tránh lỗi mạng vào phút chót
-  const BUFFER_TIME = 24 * 60 * 60 * 1000; // 5 phút
+  const BUFFER_TIME = 5 * 60 * 1000;
   const now = new Date().getTime();
   const expireTime = new Date(tokenData.access_token_expires_at).getTime();
 
