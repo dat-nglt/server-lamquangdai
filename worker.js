@@ -1,5 +1,6 @@
 import { Worker } from "bullmq";
 import logger from "./src/utils/logger.js";
+// Đảm bảo import conversationService từ file đã cập nhật (có getSentLeadPhone)
 import conversationService from "./src/utils/conversation.js";
 import { handleChatService } from "./src/chats/chatbox.service.js";
 import {
@@ -28,15 +29,12 @@ const worker = new Worker(
     if (!accessToken) {
       logger.error(`Không nhận được accessToken`);
     }
-    logger.info(`[Worker] Bắt đầu xử lý job [${job.id}] cho UID: ${UID}`);
+    logger.info(`[Worker] Bắt đầu xử lý job [${job.id}] cho UID: ${UID}`); // *** TOÀN BỘ LOGIC GIẢI THUẬT NẰM TRONG NÀY ***
 
-    // *** TOÀN BỘ LOGIC CŨ GIẢI THUẬT NẰM TRONG NÀY ***
     try {
       // 1. Lưu tin nhắn người dùng
-      conversationService.addMessage(UID, "user", messageFromUser);
+      conversationService.addMessage(UID, "user", messageFromUser); // 2. Phân tích tin nhắn (với try-catch riêng) // Chúng ta muốn: nếu phân tích lỗi, vẫn tiếp tục chat
 
-      // 2. Phân tích tin nhắn (với try-catch riêng)
-      // Chúng ta muốn: nếu phân tích lỗi, vẫn tiếp tục chat
       let jsonData = null;
       try {
         const analyzeResult = await analyzeUserMessageService(
@@ -55,33 +53,52 @@ const worker = new Worker(
           `[Worker] Lỗi khi PHÂN TÍCH cho UID ${UID}, bỏ qua bước phân tích:`,
           analyzeError.message
         );
-      }
+      } // 3. Gửi thông tin Lead (nếu phân tích thành công)
 
-      // 3. Gửi thông tin Lead (nếu phân tích thành công)
       if (jsonData && jsonData.soDienThoai && jsonData.nhuCau) {
-        console.log(jsonData);
+        // [LOGIC MỚI] Kiểm tra SĐT đã được gửi đi trước đó chưa
+        const previouslySentPhone = conversationService.getSentLeadPhone(UID);
 
-        const dataCustomer = `- Nhu cầu: ${jsonData.nhuCau}
+        // [LOGIC MỚI] So sánh SĐT vừa phân tích được với SĐT đã lưu
+        if (
+          previouslySentPhone &&
+          previouslySentPhone === jsonData.soDienThoai
+        ) {
+          // SĐT này đã được gửi rồi. Bỏ qua.
+          logger.info(
+            `[Worker] Đã gửi Lead cho UID ${UID} với SĐT ${previouslySentPhone} rồi. Bỏ qua...`
+          );
+        } else {
+          // Đây là SĐT mới, hoặc SĐT đã thay đổi, hoặc lần đầu tiên.
+          // -> Tiến hành gửi Lead
+          logger.info(
+            `[Worker] Gửi Lead cho UID ${UID}. SĐT mới/thay đổi: ${jsonData.soDienThoai}`
+          );
+          console.log(jsonData); // In ra jsonData để kiểm tra
+
+          const dataCustomer = `- Nhu cầu: ${jsonData.nhuCau}
 - Tên zalo khách hàng: ${jsonData.tenKhachHang || "Anh/chị"}
 - Số điện thoại: ${jsonData.soDienThoai}
 - Mức độ quan tâm: ${jsonData.mucDoQuanTam}
 📞Vui lòng phân bổ liên hệ lại khách hàng ngay!`;
-        try {
-          await informationForwardingSynthesisService(
-            UID,
-            dataCustomer,
-            accessToken
-          );
-          logger.info(
-            `[Worker] Đã gửi thông tin Lead thành công cho UID: ${UID}`
-          );
-        } catch (leadError) {
-          logger.error(
-            `[Worker] Lỗi khi GỬI LEAD cho UID ${UID}:`,
-            leadError.message
-          );
-          // Lỗi này cũng không retry job
-        }
+          try {
+            // [LOGIC MỚI] Thêm tham số thứ 4: jsonData.soDienThoai
+            await informationForwardingSynthesisService(
+              UID,
+              dataCustomer,
+              accessToken,
+              (phoneNumberSent = jsonData.soDienThoai) // Truyền SĐT vào service
+            );
+            logger.info(
+              `[Worker] Đã gửi thông tin Lead thành công cho UID: ${UID}`
+            );
+          } catch (leadError) {
+            logger.error(
+              `[Worker] Lỗi khi GỬI LEAD cho UID ${UID}:`,
+              leadError.message
+            ); // Lỗi này cũng không retry job
+          }
+        } // Đóng else của [LOGIC MỚI]
       } else {
         logger.warn(
           `[Worker] Chưa đủ thông tin Lead hoặc lỗi phân tích cho UID: ${UID}`
@@ -90,17 +107,13 @@ const worker = new Worker(
 
       logger.info(
         `[Worker] Đang gọi AI Chat cho UID [${UID}]: ${messageFromUser}`
-      );
+      ); // 4. Xử lý chat với AI (Đây là bước có thể retry) // Hàm này sẽ NÉM LỖI 503 (như đã sửa ở trên)
 
-      // 4. Xử lý chat với AI (Đây là bước có thể retry)
-      // Hàm này sẽ NÉM LỖI 503 (như đã sửa ở trên)
-      const messageFromAI = await handleChatService(messageFromUser, UID);
+      const messageFromAI = await handleChatService(messageFromUser, UID); // 5. Lưu phản hồi AI
 
-      // 5. Lưu phản hồi AI
       conversationService.addMessage(UID, "model", messageFromAI);
-      logger.info(`[Worker] AI trả lời [${UID}]: ${messageFromAI}`);
+      logger.info(`[Worker] AI trả lời [${UID}]: ${messageFromAI}`); // 6. Gửi tin nhắn trả lời "thật" cho Zalo (Shipper đi giao)
 
-      // 6. Gửi tin nhắn trả lời "thật" cho Zalo (Shipper đi giao)
       await sendZaloMessage(UID, messageFromAI, accessToken);
 
       logger.info(`[Worker] Job [${job.id}] HOÀN THÀNH cho UID: ${UID}`);
@@ -109,8 +122,7 @@ const worker = new Worker(
       // Sẽ bị bắt ở đây.
       logger.error(
         `[Worker] Job [${job.id}] THẤT BẠI cho UID ${UID}: ${error.message}. Sẽ thử lại...`
-      );
-      // Ném lỗi này ra ngoài để BullMQ biết và retry job
+      ); // Ném lỗi này ra ngoài để BullMQ biết và retry job
       throw error;
     }
   },

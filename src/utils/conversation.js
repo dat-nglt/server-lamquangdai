@@ -3,6 +3,7 @@
  * Biến này sẽ nằm trong BỘ NHỚ RAM của ứng dụng.
  */
 const conversations = new Map();
+const sentLeadsPhone = new Map(); // <-- MỚI: Lưu SĐT của lead đã gửi
 const maxHistoryLength = 20;
 
 /**
@@ -27,9 +28,8 @@ const addMessage = (UID, role, message) => {
     timestamp: new Date().toISOString(),
   };
 
-  history.push(messageEntry);
+  history.push(messageEntry); // Giới hạn độ dài lịch sử
 
-  // Giới hạn độ dài lịch sử
   if (history.length > maxHistoryLength) {
     history.splice(0, history.length - maxHistoryLength);
   }
@@ -60,6 +60,29 @@ const getActiveConversationsCount = () => {
   return conversations.size;
 };
 
+// --- CÁC HÀM MỚI ĐỂ GIẢI QUYẾT BÀI TOÁN ---
+
+/**
+ * [MỚI] Đánh dấu UID này đã được gửi thông tin Lead với SĐT cụ thể.
+ * Hàm này sẽ được gọi bởi informationForwardingSynthesisService.
+ */
+const setLeadSent = (UID, phoneNumber) => {
+  if (!phoneNumber) return;
+  sentLeadsPhone.set(UID, phoneNumber);
+  console.log(`[ConvService] Đã set SĐT ${phoneNumber} cho UID ${UID}`);
+};
+
+/**
+ * [MỚI] Kiểm tra SĐT đã gửi trước đó cho UID này.
+ * Hàm này sẽ được gọi bởi worker.js TRƯỚC KHI gửi lead.
+ * @returns {string | null} Trả về SĐT (string) nếu có, hoặc null nếu chưa.
+ */
+const getSentLeadPhone = (UID) => {
+  return sentLeadsPhone.get(UID) || null;
+};
+
+// --- HẾT PHẦN MỚI ---
+
 /**
  * Tập hợp tất cả các hàm thành một đối tượng "service" duy nhất.
  */
@@ -69,6 +92,8 @@ const conversationService = {
   getFormattedHistory,
   clearHistory,
   getActiveConversationsCount,
+  setLeadSent, // <-- MỚI
+  getSentLeadPhone, // <-- MỚI
 };
 
 /**

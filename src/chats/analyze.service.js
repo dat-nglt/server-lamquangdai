@@ -108,12 +108,11 @@ export const analyzeUserMessageService = async (
     throw error;
   }
 };
-
-// (Sửa lại informationForwardingSynthesisService để dùng hàm sendZaloMessage)
 export const informationForwardingSynthesisService = async (
   UID,
   dataCustomer,
-  accessToken
+  accessToken,
+  phoneNumberSent // Tham số này đã được thêm chính xác
 ) => {
   // UID của Lead/Quản lý
   // const LEAD_UID = "5584155984018191145";
@@ -122,14 +121,17 @@ export const informationForwardingSynthesisService = async (
   try {
     const response = await sendZaloMessage(LEAD_UID, dataCustomer, accessToken);
     logger.info(`Đã gửi thông tin khách hàng đến Lead [UID: ${LEAD_UID}]`);
-    conversationService.clearHistory(UID);
+
+    // [CẬP NHẬT QUAN TRỌNG]
+    // Đánh dấu SĐT này đã được gửi thành công.
+    conversationService.setLeadSent(UID, phoneNumberSent);
+
     return response; // Trả về phản hồi từ Zalo
   } catch (error) {
     logger.error(
       `Lỗi khi gửi thông tin Lead đến [UID: ${LEAD_UID}]:`,
       error.message
-    );
-    // Ném lỗi để worker biết (mặc dù job chính vẫn có thể thành công)
+    ); // Ném lỗi để worker biết (mặc dù job chính vẫn có thể thành công)
     throw new Error("Failed to send lead info");
   }
 };
