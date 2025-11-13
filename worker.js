@@ -4,168 +4,178 @@ import conversationService from "./src/utils/conversation.js";
 // ... (các import khác của bạn) ...
 import { handleChatService } from "./src/chats/chatbox.service.js";
 import {
-  getValidAccessToken,
-  sendZaloMessage,
+    getValidAccessToken,
+    sendZaloMessage,
 } from "./src/chats/zalo.service.js";
 import {
-  analyzeUserMessageService,
-  informationForwardingSynthesisService,
+    analyzeUserMessageService,
+    informationForwardingSynthesisService,
 } from "./src/chats/analyze.service.js";
 
 const connection = {
-  host: process.env.REDIS_HOST || "localhost",
-  port: process.env.REDIS_PORT || 6379,
-  password: process.env.REDIS_PASSWORD || "dat20April@03",
+    host: process.env.REDIS_HOST || "localhost",
+    port: process.env.REDIS_PORT || 6379,
+    password: process.env.REDIS_PASSWORD || "dat20April@03",
 };
 
 logger.info("[Worker] Đang khởi động và lắng nghe hàng đợi 'zalo-chat'...");
 
 const worker = new Worker(
-  "zalo-chat",
-  async (job) => {
-    // --- [LOGIC DEBOUNCE MỚI] ---
-    // 1. Lấy data từ job
-    const { UID, isDebounced } = job.data;
-    const redisClient = await worker.client;
-    const pendingMessageKey = `pending-msgs-${UID}`;
-    let messageFromUser; // Biến này sẽ chứa tin nhắn cuối cùng (đã gộp)
+    "zalo-chat",
+    async (job) => {
+        // --- [LOGIC DEBOUNCE MỚI] ---
+        // 1. Lấy data từ job
+        const { UID, isDebounced } = job.data;
+        const redisClient = await worker.client;
+        const pendingMessageKey = `pending-msgs-${UID}`;
+        let messageFromUser; // Biến này sẽ chứa tin nhắn cuối cùng (đã gộp)
 
-    if (isDebounced) {
-      // 3. Lấy TẤT CẢ tin nhắn đang chờ
-      const messages = await redisClient.lrange(pendingMessageKey, 0, -1);
+        if (isDebounced) {
+            // 3. Lấy TẤT CẢ tin nhắn đang chờ
+            const messages = await redisClient.lrange(pendingMessageKey, 0, -1);
 
-      if (messages.length === 0) {
-        logger.warn(
-          `[Worker] Job ${job.id} cho UID ${UID} không có tin nhắn nào (có thể đã xử lý rồi). Bỏ qua.`
-        );
-        return; // Hoàn thành job, không làm gì cả
-      }
+            if (messages.length === 0) {
+                logger.warn(
+                    `[Worker] Job ${job.id} cho UID ${UID} không có tin nhắn nào (có thể đã xử lý rồi). Bỏ qua.`
+                );
+                return; // Hoàn thành job, không làm gì cả
+            }
 
-      // 5. Gộp các tin nhắn lại
-      messageFromUser = messages.join(" \n "); // Gộp bằng ký tự xuống dòng
-    } else {
-      // Trường hợp job cũ không có cờ "isDebounced" (chỉ để dự phòng)
-      logger.warn(
-        `[Worker] Job ${job.id} cho UID ${UID} không có cờ 'isDebounced'. Xử lý như job thường.`
-      );
-      messageFromUser = job.data.messageFromUser;
-    }
-
-    // --- [LOGIC XỬ LÝ CHÍNH BẮT ĐẦU TỪ ĐÂY] ---
-    // Mọi thứ bên dưới giữ nguyên, chỉ dùng biến `messageFromUser` đã gộp ở trên
-
-    const accessToken = await getValidAccessToken();
-    if (!accessToken) {
-      logger.error(`Không nhận được accessToken`);
-    }
-    logger.info(
-      `[Worker] Bắt đầu xử lý job [${job.id}] cho UID: ${UID} (Gộp ${
-        messageFromUser.split("\n").length
-      } tin nhắn)`
-    );
-
-    try {
-      // 1. Lưu tin nhắn (đã gộp)
-      // CHỈ LƯU 1 LẦN SAU KHI GỘP
-      conversationService.addMessage(UID, "user", messageFromUser); // 2. Phân tích tin nhắn (đã gộp)
-
-      let jsonData = null;
-      try {
-        const analyzeResult = await analyzeUserMessageService(
-          messageFromUser, // Dùng biến đã gộp
-          UID,
-          accessToken
-        );
-        const analyzeJSON = analyzeResult
-          .replace("```json", "")
-          .replace("```", "")
-          .trim();
-        jsonData = JSON.parse(analyzeJSON);
-      } catch (analyzeError) {
-        logger.error(
-          `[Worker] Lỗi khi PHÂN TÍCH cho UID ${UID}:`,
-          analyzeError.message
-        );
-      } // 3. Gửi thông tin Lead (Giữ nguyên logic kiểm tra SĐT của bạn)
-
-      if (jsonData && jsonData.soDienThoai && jsonData.nhuCau) {
-        const previouslySentPhone = conversationService.getSentLeadPhone(UID);
-        if (
-          previouslySentPhone &&
-          previouslySentPhone === jsonData.soDienThoai
-        ) {
-          logger.info(`[Worker] Đã gửi Lead cho UID ${UID} rồi. Bỏ qua...`);
+            // 5. Gộp các tin nhắn lại
+            messageFromUser = messages.join(" \n "); // Gộp bằng ký tự xuống dòng
         } else {
-          logger.info(
-            `[Worker] Gửi Lead cho UID ${UID}. SĐT mới: ${jsonData.soDienThoai}`
-          );
-          const dataCustomer = `- Nhu cầu: ${
-            jsonData.nhuCau
-          }\n- Tên zalo khách hàng: ${
-            jsonData.tenKhachHang || "Anh/chị"
-          }\n- Số điện thoại: ${jsonData.soDienThoai}\n- Mức độ quan tâm: ${
-            jsonData.mucDoQuanTam
-          }\n📞Vui lòng phân bổ liên hệ lại khách hàng ngay!`;
-          try {
-            await informationForwardingSynthesisService(
-              UID,
-              dataCustomer,
-              accessToken,
-              jsonData.soDienThoai
+            // Trường hợp job cũ không có cờ "isDebounced" (chỉ để dự phòng)
+            logger.warn(
+                `[Worker] Job ${job.id} cho UID ${UID} không có cờ 'isDebounced'. Xử lý như job thường.`
             );
-            logger.info(
-              `[Worker] Đã gửi thông tin Lead thành công cho UID: ${UID}`
-            );
-          } catch (leadError) {
-            logger.error(
-              `[Worker] Lỗi khi GỬI LEAD cho UID ${UID}:`,
-              leadError.message
-            );
-          }
+            messageFromUser = job.data.messageFromUser;
         }
-      } else {
-        logger.warn(
-          `[Worker] Chưa đủ thông tin Lead hoặc lỗi phân tích cho UID: ${UID}`
+
+        // --- [LOGIC XỬ LÝ CHÍNH BẮT ĐẦU TỪ ĐÂY] ---
+        // Mọi thứ bên dưới giữ nguyên, chỉ dùng biến `messageFromUser` đã gộp ở trên
+
+        const accessToken = await getValidAccessToken();
+        if (!accessToken) {
+            logger.error(`Không nhận được accessToken`);
+        }
+        logger.info(
+            `[Worker] Bắt đầu xử lý job [${job.id}] cho UID: ${UID} (Gộp ${
+                messageFromUser.split("\n").length
+            } tin nhắn)`
         );
-      }
 
-      logger.info(
-        `[Worker] Đang gọi AI Chat cho UID [${UID}] (Nội dung: ${messageFromUser.substring(
-          0,
-          50
-        )}...)`
-      ); // 4. Xử lý chat với AI (dùng tin đã gộp)
+        try {
+            // 1. Lưu tin nhắn (đã gộp)
+            // CHỈ LƯU 1 LẦN SAU KHI GỘP
+            conversationService.addMessage(UID, "user", messageFromUser); // 2. Phân tích tin nhắn (đã gộp)
 
-      const messageFromAI = await handleChatService(messageFromUser, UID); // 5. Lưu phản hồi AI
+            let jsonData = null;
+            try {
+                const analyzeResult = await analyzeUserMessageService(
+                    messageFromUser, // Dùng biến đã gộp
+                    UID,
+                    accessToken
+                );
+                const analyzeJSON = analyzeResult
+                    .replace("```json", "")
+                    .replace("```", "")
+                    .trim();
+                jsonData = JSON.parse(analyzeJSON);
+            } catch (analyzeError) {
+                logger.error(
+                    `[Worker] Lỗi khi PHÂN TÍCH cho UID ${UID}:`,
+                    analyzeError.message
+                );
+            } // 3. Gửi thông tin Lead (Giữ nguyên logic kiểm tra SĐT của bạn)
 
-      conversationService.addMessage(UID, "model", messageFromAI);
-      logger.info(
-        `[Worker] AI trả lời [${UID}]: ${messageFromAI.substring(0, 50)}...`
-      ); // 6. Gửi tin nhắn trả lời "thật" cho Zalo
+            console.log(JSON.stringify(jsonData));
 
-      await sendZaloMessage(UID, messageFromAI, accessToken);
+            if (jsonData && jsonData.soDienThoai && jsonData.nhuCau) {
+                const previouslySentPhone =
+                    conversationService.getSentLeadPhone(UID);
+                if (
+                    previouslySentPhone &&
+                    previouslySentPhone === jsonData.soDienThoai
+                ) {
+                    logger.info(
+                        `[Worker] Đã gửi Lead cho UID ${UID} rồi. Bỏ qua...`
+                    );
+                } else {
+                    logger.info(
+                        `[Worker] Gửi Lead cho UID ${UID}. SĐT mới: ${jsonData.soDienThoai}`
+                    );
+                    const dataCustomer = `- Nhu cầu: ${
+                        jsonData.nhuCau
+                    }\n- Tên zalo khách hàng: ${
+                        jsonData.tenKhachHang || "Anh/chị"
+                    }\n- Số điện thoại: ${
+                        jsonData.soDienThoai
+                    }\n- Mức độ quan tâm: ${
+                        jsonData.mucDoQuanTam
+                    }\n📞Vui lòng phân bổ liên hệ lại khách hàng ngay!`;
+                    try {
+                        await informationForwardingSynthesisService(
+                            UID,
+                            dataCustomer,
+                            accessToken,
+                            jsonData.soDienThoai
+                        );
+                        logger.info(
+                            `[Worker] Đã gửi thông tin Lead thành công cho UID: ${UID}`
+                        );
+                    } catch (leadError) {
+                        logger.error(
+                            `[Worker] Lỗi khi GỬI LEAD cho UID ${UID}:`,
+                            leadError.message
+                        );
+                    }
+                }
+            } else {
+                logger.warn(
+                    `[Worker] Chưa đủ thông tin Lead hoặc lỗi phân tích cho UID: ${UID}`
+                );
+            }
 
-      logger.info(`[Worker] Job [${job.id}] HOÀN THÀNH cho UID: ${UID}`);
-      // 4. Xóa key đó đi
-      await redisClient.del(pendingMessageKey);
-    } catch (error) {
-      // BẤT KỲ LỖI NÀO BỊ NÉM RA (chủ yếu là 503 từ handleChatService)
-      // Sẽ bị bắt ở đây.
-      logger.error(
-        `[Worker] Job [${job.id}] THẤT BẠI cho UID ${UID}: ${error.message}. Sẽ thử lại...`
-      ); // Ném lỗi này ra ngoài để BullMQ biết và retry job
-      throw error;
-    }
-  },
-  { connection }
+            logger.info(
+                `[Worker] Đang gọi AI Chat cho UID [${UID}] (Nội dung: ${messageFromUser.substring(
+                    0,
+                    50
+                )}...)`
+            ); // 4. Xử lý chat với AI (dùng tin đã gộp)
+
+            const messageFromAI = await handleChatService(messageFromUser, UID); // 5. Lưu phản hồi AI
+
+            conversationService.addMessage(UID, "model", messageFromAI);
+            logger.info(
+                `[Worker] AI trả lời [${UID}]: ${messageFromAI.substring(
+                    0,
+                    50
+                )}...`
+            ); // 6. Gửi tin nhắn trả lời "thật" cho Zalo
+
+            await sendZaloMessage(UID, messageFromAI, accessToken);
+
+            logger.info(`[Worker] Job [${job.id}] HOÀN THÀNH cho UID: ${UID}`);
+            // 4. Xóa key đó đi
+            await redisClient.del(pendingMessageKey);
+        } catch (error) {
+            // BẤT KỲ LỖI NÀO BỊ NÉM RA (chủ yếu là 503 từ handleChatService)
+            // Sẽ bị bắt ở đây.
+            logger.error(
+                `[Worker] Job [${job.id}] THẤT BẠI cho UID ${UID}: ${error.message}. Sẽ thử lại...`
+            ); // Ném lỗi này ra ngoài để BullMQ biết và retry job
+            throw error;
+        }
+    },
+    { connection }
 );
 
 worker.on("completed", (job) => {
-  logger.info(`[Worker] Đã hoàn thành tác vụ ${job.id}`);
+    logger.info(`[Worker] Đã hoàn thành tác vụ ${job.id}`);
 });
 
 worker.on("failed", (job, err) => {
-  logger.error(
-    `[Worker] Job ${job.id} thất bại sau ${job.attemptsMade} lần thử: ${err.message}`
-  );
+    logger.error(
+        `[Worker] Job ${job.id} thất bại sau ${job.attemptsMade} lần thử: ${err.message}`
+    );
 });
