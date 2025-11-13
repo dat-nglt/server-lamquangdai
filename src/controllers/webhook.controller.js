@@ -19,6 +19,7 @@ export const handleZaloWebhook = async (req, res) => {
       "7365147034329534561",
       "6261117697809429940",
       "5584155984018191145",
+      "9032072449004512527"
     ];
     if (!ignoredUIDs.includes(UID)) {
       logger.warn(
