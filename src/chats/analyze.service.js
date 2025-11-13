@@ -12,7 +12,11 @@ const API_KEY = process.env.GEMENI_API_KEY;
 const ai = new GoogleGenAI({ apiKey: API_KEY });
 
 // (Giữ nguyên analyzeUserMessageService, không cần sửa)
-export const analyzeUserMessageService = async (messageFromUser, UID, accessToken) => {
+export const analyzeUserMessageService = async (
+  messageFromUser,
+  UID,
+  accessToken
+) => {
   const phoneNumberFromUser = extractPhoneNumber(messageFromUser);
   let displayName = "Anh/chị";
   let phoneInfo = null;
@@ -27,7 +31,6 @@ export const analyzeUserMessageService = async (messageFromUser, UID, accessToke
       accessToken
     );
     displayName = latestMessageFromUID?.from_display_name;
-    logger.info(`Tên người dùng: ${displayName}`);
   } catch (error) {
     logger.warn(
       `Không thể xác định tên người dùng - Giá trị mặc định: Anh/chị`
@@ -42,7 +45,6 @@ export const analyzeUserMessageService = async (messageFromUser, UID, accessToke
   });
 
   const conversationHistory = conversationService.getConversationHistory(UID);
-  logger.error(displayName);
 
   const prompt = `
   Dưới đây là hội thoại trước đó với khách hàng (nếu có):

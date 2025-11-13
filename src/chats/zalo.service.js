@@ -76,7 +76,7 @@ export const extractDisplayNameFromMessage = async (UID, accessToken) => {
     }
 
     logger.info(
-      `[Zalo API] Đã trích xuất tin nhắn từ [UID: ${UID}]: ${
+      `[Zalo API] Đã trích xuất tên người dùng từ tin nhắn qua OA [UID: ${UID}]: ${
         latestMessage.from_display_name || "Không rõ tên"
       }`
     );
