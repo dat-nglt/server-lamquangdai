@@ -114,77 +114,29 @@ export const informationForwardingSynthesisService = async (
     UID,
     dataCustomer,
     accessToken,
-    phoneNumberSent
+    phoneNumberSent // Tham số này đã được thêm chính xác
 ) => {
-    const LEAD_UID_ARR = [
-        // "5584155984018191145",
-        // "1591235795556991810",
-        "7365147034329534561",
-    ];
+    // UID của Lead/Quản lý
+    // const LEAD_UID = "5584155984018191145";
+    // const LEAD_UID = "1591235795556991810";
+    const LEAD_UID = "7365147034329534561";
 
-    // 1. Tạo một mảng các "promise" gửi tin nhắn
-    const sendPromises = LEAD_UID_ARR.map(async (LEAD_UID) => {
-        try {
-            const response = await sendZaloMessage(
-                LEAD_UID,
-                dataCustomer,
-                accessToken
-            );
-            logger.info(
-                `Đã gửi thông tin khách hàng đến Lead [UID: ${LEAD_UID}]`
-            );
-            return { status: "fulfilled", uid: LEAD_UID, response }; // Trả về kết quả thành công
-        } catch (error) {
-            logger.error(
-                `Lỗi khi gửi thông tin Lead đến [UID: ${LEAD_UID}]:`,
-                error.message
-            );
-            // Ném lỗi để Promise.allSettled bắt được
-            throw new Error(`Failed to send to ${LEAD_UID}: ${error.message}`);
-        }
-    });
-
-    // 2. Chờ cho TẤT CẢ các promise hoàn thành (song song)
-    const results = await Promise.allSettled(sendPromises);
-
-    // 3. Kiểm tra kết quả
-    let atLeastOneSuccess = false;
-
-    results.forEach((result, index) => {
-        if (result.status === "fulfilled") {
-            // Một promise đã thành công
-            atLeastOneSuccess = true;
-            // Bạn có thể log chi tiết hơn nếu muốn
-            // logger.info(`Gửi thành công tới UID: ${result.value.uid}`);
-        } else {
-            // Một promise đã thất bại
-            logger.error(
-                `Gửi thất bại tới [UID: ${LEAD_UID_ARR[index]}]:`,
-                result.reason.message
-            );
-        }
-    });
-
-    // 4. Chỉ gọi setLeadSent MỘT LẦN nếu có ít nhất một lần gửi thành công
-    if (atLeastOneSuccess) {
-        try {
-            conversationService.setLeadSent(UID, phoneNumberSent);
-            logger.info(
-                `Đã đánh dấu SĐT ${phoneNumberSent} đã được gửi cho Lead.`
-            );
-        } catch (error) {
-            logger.error(
-                `Lỗi khi gọi setLeadSent cho SĐT ${phoneNumberSent}:`,
-                error.message
-            );
-        }
-    } else {
-        // (Tùy chọn) Xử lý trường hợp không gửi được cho BẤT KỲ ai
-        logger.warn(
-            `Không thể gửi thông tin SĐT ${phoneNumberSent} cho bất kỳ Lead nào.`
+    try {
+        const response = await sendZaloMessage(
+            LEAD_UID,
+            dataCustomer,
+            accessToken
         );
-    }
+        logger.info(`Đã gửi thông tin khách hàng đến Lead [UID: ${LEAD_UID}]`);
 
-    // (Tùy chọn) Trả về kết quả
-    return results;
+        // Đánh dấu SĐT này đã được gửi thành công.
+        conversationService.setLeadSent(UID, phoneNumberSent);
+        return response; // Trả về phản hồi từ Zalo
+    } catch (error) {
+        logger.error(
+            `Lỗi khi gửi thông tin Lead đến [UID: ${LEAD_UID}]:`,
+            error.message
+        ); // Ném lỗi để worker biết (mặc dù job chính vẫn có thể thành công)
+        throw new Error("Failed to send lead info");
+    }
 };
