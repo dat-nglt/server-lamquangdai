@@ -108,7 +108,18 @@ const worker = new Worker(
                     }\n📞Vui lòng phân bổ liên hệ lại khách hàng ngay!`;
 
                     try {
-                        await appendJsonToSheet("data-m-1", jsonData);
+                        const timeout = (ms) =>
+                            new Promise((_, reject) =>
+                                setTimeout(
+                                    () => reject(new Error("Sheet timeout")),
+                                    ms
+                                )
+                            );
+
+                        await Promise.race([
+                            appendJsonToSheet("data-m-1", jsonData),
+                            timeout(5000),
+                        ]);
                     } catch (sheetError) {
                         // Lỗi nghiêm trọng: Không lưu được vào DB (Sheet)
                         // Phải dừng lại và báo lỗi, KHÔNG gửi Zalo
