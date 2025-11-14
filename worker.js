@@ -10,6 +10,7 @@ import {
     analyzeUserMessageService,
     informationForwardingSynthesisService,
 } from "./src/chats/analyze.service.js";
+import { appendJsonToSheet } from "./src/chats/googleSheet.js";
 
 const connection = {
     host: process.env.REDIS_HOST || "localhost",
@@ -105,6 +106,18 @@ const worker = new Worker(
                     }\n- Mức độ quan tâm: ${
                         jsonData.mucDoQuanTam
                     }\n📞Vui lòng phân bổ liên hệ lại khách hàng ngay!`;
+
+                    const isWrote = await appendJsonToSheet(
+                        "data-m-1",
+                        jsonData
+                    );
+
+                    if (isWrote) {
+                        logger.info("Đã ghi data vào sheet")
+                    }
+                    else {
+                        logger.error("Chưa thể ghi data vào sheet")
+                    }
                     try {
                         await informationForwardingSynthesisService(
                             UID,
