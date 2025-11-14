@@ -63,7 +63,9 @@ export const handleZaloWebhook = async (req, res) => {
         );
 
         logger.info(
-            `[Webhook] Đã gộp/đặt lại timer cho UID: ${UID} - ${messageFromUser}. Sẽ xử lý sau 10s.`
+            `[Webhook] Đã gộp/đặt lại timer cho UID: ${UID} - ${messageFromUser}. Sẽ xử lý sau ${
+                DEBOUNCE_DELAY / 1000
+            }s.`
         ); // 6. Phản hồi 200 OK cho Zalo NGAY LẬP TỨC
 
         res.status(200).send("OK");
