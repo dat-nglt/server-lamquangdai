@@ -1,7 +1,6 @@
 import { Worker } from "bullmq";
 import logger from "./src/utils/logger.js";
 import conversationService from "./src/utils/conversation.js";
-// ... (các import khác của bạn) ...
 import { handleChatService } from "./src/chats/chatbox.service.js";
 import {
     getValidAccessToken,
@@ -23,7 +22,6 @@ logger.info("[Worker] Đang khởi động và lắng nghe hàng đợi 'zalo-ch
 const worker = new Worker(
     "zalo-chat",
     async (job) => {
-        // --- [LOGIC DEBOUNCE MỚI] ---
         // 1. Lấy data từ job
         const { UID, isDebounced } = job.data;
         const redisClient = await worker.client;
@@ -42,9 +40,9 @@ const worker = new Worker(
             }
 
             // 5. Gộp các tin nhắn lại
-            messageFromUser = messages.join(" "); // Gộp bằng ký tự xuống dòng
+            messageFromUser = messages.join(", ");
         } else {
-            // Trường hợp job cũ không có cờ "isDebounced" (chỉ để dự phòng)
+            // Trường hợp job cũ không có cờ "isDebounced"
             logger.warn(
                 `[Worker] Job ${job.id} cho UID ${UID} không có cờ 'isDebounced'. Xử lý như job thường.`
             );
@@ -52,25 +50,18 @@ const worker = new Worker(
         }
 
         // --- [LOGIC XỬ LÝ CHÍNH BẮT ĐẦU TỪ ĐÂY] ---
-        // Mọi thứ bên dưới giữ nguyên, chỉ dùng biến `messageFromUser` đã gộp ở trên
 
         const accessToken = await getValidAccessToken();
         if (!accessToken) {
             logger.error(`Không nhận được accessToken`);
         }
-        // logger.info(
-        //     `[Worker] Bắt đầu xử lý job [${job.id}] cho UID: ${UID} (Gộp ${
-        //         messageFromUser.split("\n").length
-        //     } tin nhắn)`
-        // );
         logger.info(
             `[Worker] Bắt đầu xử lý job [${job.id}] cho UID: ${UID}: ${messageFromUser}`
         );
 
         try {
             // 1. Lưu tin nhắn (đã gộp)
-            // CHỈ LƯU 1 LẦN SAU KHI GỘP
-            conversationService.addMessage(UID, "user", messageFromUser); // 2. Phân tích tin nhắn (đã gộp)
+            conversationService.addMessage(UID, "user", messageFromUser);
 
             let jsonData = null;
             try {
@@ -90,8 +81,6 @@ const worker = new Worker(
                     analyzeError.message
                 );
             } // 3. Gửi thông tin Lead (Giữ nguyên logic kiểm tra SĐT của bạn)
-
-            console.log(JSON.stringify(jsonData));
 
             if (jsonData && jsonData.soDienThoai && jsonData.nhuCau) {
                 const previouslySentPhone =
@@ -140,10 +129,7 @@ const worker = new Worker(
             }
 
             logger.info(
-                `[Worker] Đang gọi AI Chat cho UID [${UID}] (Nội dung: ${messageFromUser.substring(
-                    0,
-                    50
-                )}...)`
+                `[Worker] Đang gọi AI Chat cho UID [${UID}] Nội dung [${messageFromUser}]`
             ); // 4. Xử lý chat với AI (dùng tin đã gộp)
 
             const messageFromAI = await handleChatService(messageFromUser, UID); // 5. Lưu phản hồi AI

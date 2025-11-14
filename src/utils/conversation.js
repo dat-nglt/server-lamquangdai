@@ -4,7 +4,7 @@
  */
 const conversations = new Map();
 const sentLeadsPhone = new Map(); // <-- MỚI: Lưu SĐT của lead đã gửi
-const maxHistoryLength = 20;
+const maxHistoryLength = 30;
 
 /**
  * Lấy lịch sử trò chuyện cho một người dùng.

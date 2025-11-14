@@ -24,9 +24,12 @@ export const createChatSessionService = () => {
 const chatSessions = new Map();
 const getOrCreateChatSession = (UID) => {
   if (chatSessions.has(UID)) {
+    // Nếu người dùng đã tồn tại session chat => tiến hành truy xuất tiếp và xử lý với UID
     logger.info(`[Chat Service] Đang lấy session cho user: ${UID}`);
     return chatSessions.get(UID);
   }
+  
+  // Nếu người dùng chưa tồn tại session chat => thực hiện tạo mới session chat với UID
   logger.info(`[Chat Service] Tạo session MỚI cho user: ${UID}`);
   const newChatSession = createChatSessionService();
   chatSessions.set(UID, newChatSession);
