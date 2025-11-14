@@ -63,8 +63,8 @@ const worker = new Worker(
         try {
             // 1. Lưu tin nhắn (đã gộp)
             conversationService.addMessage(UID, "user", messageFromUser);
-
             let jsonData = null;
+
             try {
                 const analyzeResult = await analyzeUserMessageService(
                     messageFromUser, // Dùng biến đã gộp
@@ -81,7 +81,8 @@ const worker = new Worker(
                     `[Worker] Lỗi khi PHÂN TÍCH cho UID ${UID}:`,
                     analyzeError.message
                 );
-            } // 3. Gửi thông tin Lead (Giữ nguyên logic kiểm tra SĐT của bạn)
+                throw analyzeError;
+            }
 
             if (jsonData && jsonData.soDienThoai && jsonData.nhuCau) {
                 const previouslySentPhone =
