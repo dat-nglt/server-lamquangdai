@@ -9,6 +9,8 @@ const __dirname = path.dirname(__filename);
 // Đường dẫn CHÍNH XÁC đến file key JSON
 const keyFilePath = path.join(__dirname, "google-sheet-key.json");
 
+logger.info(`KeyFilePath ${keyFilePath}`);
+
 const auth = new google.auth.GoogleAuth({
     keyFile: keyFilePath,
     scopes: ["https://www.googleapis.com/auth/spreadsheets"],

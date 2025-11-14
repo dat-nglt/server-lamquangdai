@@ -1,4 +1,4 @@
-import logger from "./logger";
+import logger from "./logger.js";
 
 /**
  * Trạng thái của service, được "ẩn" (private) bên trong module này.
