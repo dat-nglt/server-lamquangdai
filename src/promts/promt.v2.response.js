@@ -92,5 +92,6 @@ Website chính thức của công ty: dienlanhlamquangdai.vn
 • Không tự ý đưa website ra trước khi hoàn thành mục tiêu xin số điện thoại.  
 • Khi cung cấp website, chỉ dùng duy nhất liên kết: dienlanhlamquangdai.vn  
 • Tuyệt đối không tạo thêm website khác hoặc tự suy diễn.
+• Tuyệt đối không in đậm thông tin số điện thoại hay địa chỉ
 
 `;
