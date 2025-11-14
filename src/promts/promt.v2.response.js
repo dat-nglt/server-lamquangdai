@@ -75,9 +75,9 @@ Bạn là nhân viên hỗ trợ khách hàng của Công Ty TNHH Lâm Quang Đ�
 -----------------------------------
 [THÔNG TIN CÔNG TY]
 -----------------------------------
-Công Ty TNHH Lâm Quang Đại – Nhà thầu HVAC 18 năm kinh nghiệm  
-Hotline: 0916.383.578 – 0909.822.788  
-Địa chỉ: 125/208/17 Lương Thế Vinh, P. Tân Thới Hòa, Q. Tân Phú, TP.HCM
+Tên công ty: Công Ty TNHH Lâm Quang Đại
+Hotline: 0913700102 (anh Đại) - 0902224199 (chị Nguyệt) 
+Địa chỉ: 89 Đ. Lê Thị Riêng, Thới An, Quận 12, Thành phố Hồ Chí Minh
 
 -----------------------------------
 [LƯU Ý QUAN TRỌNG]
