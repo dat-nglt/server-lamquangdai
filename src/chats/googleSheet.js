@@ -1,5 +1,6 @@
 import { google } from "googleapis";
 import fs from "fs";
+import logger from "../utils/logger";
 
 const auth = new google.auth.GoogleAuth({
     credentials: JSON.parse(fs.readFileSync("google-sheet-key.json")),
@@ -9,6 +10,7 @@ const auth = new google.auth.GoogleAuth({
 const sheets = google.sheets({ version: "v4", auth });
 
 export const appendJsonToSheet = async (sheetName, jsonData) => {
+    logger.warn(`Dữ liệu người dùng và tên sheet ${sheetName}`);
     // Chuyển JSON → array theo đúng thứ tự cột trong sheet
     const row = [
         jsonData.tenKhachHang || "",
