@@ -105,6 +105,8 @@ export const analyzeUserMessageService = async (
             `[AI Analyze Error] Lỗi khi gọi Gemini - Phân tích hội thoại giữa OA & [UID: ${UID}]`,
             error.message
         );
+        console.log(error.message);
+        
         // Ném lỗi này ra để worker bắt
         throw error;
     }
