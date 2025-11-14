@@ -107,25 +107,35 @@ const worker = new Worker(
                         jsonData.mucDoQuanTam
                     }\n📞Vui lòng phân bổ liên hệ lại khách hàng ngay!`;
 
-                    try {
-                        const timeout = (ms) =>
-                            new Promise((_, reject) =>
-                                setTimeout(
-                                    () => reject(new Error("Sheet timeout")),
-                                    ms
-                                )
-                            );
+                    const timeoutPromise = (
+                        ms,
+                        message = "Request timed out"
+                    ) => {
+                        return new Promise((_, reject) => {
+                            setTimeout(() => {
+                                reject(new Error(message));
+                            }, ms);
+                        });
+                    };
 
+                        try {
+                        // Chạy đua 2 promise:
+                        // 1. Hàm ghi Sheet
+                        // 2. Hàm đếm ngược 10 giây
                         await Promise.race([
                             appendJsonToSheet("data-m-1", jsonData),
-                            timeout(5000),
+                            timeoutPromise(
+                                10000,
+                                "Ghi Google Sheet quá 10 giây"
+                            ), // 10000ms = 10s
                         ]);
                     } catch (sheetError) {
-                        // Lỗi nghiêm trọng: Không lưu được vào DB (Sheet)
+                        // BẤT KỲ lỗi nào (lỗi API thật, hoặc lỗi timeout) đều sẽ bị bắt ở đây
+
                         // Phải dừng lại và báo lỗi, KHÔNG gửi Zalo
                         logger.error(
                             `[Worker] LỖI NGHIÊM TRỌNG: Không thể ghi Sheet cho SĐT ${jsonData.soDienThoai}:`,
-                            sheetError.message
+                            sheetError.message // <-- Sẽ hiển thị 'Ghi Google Sheet quá 10 giây' nếu timeout
                         );
                         // Ném lỗi này ra để worker bên ngoài biết và retry
                         throw sheetError;

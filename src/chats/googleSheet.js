@@ -1,8 +1,13 @@
 import { google } from "googleapis";
 import path from "path";
-import logger from "../utils/logger";
+import { fileURLToPath } from "url";
+import logger from "../utils/logger.js";
 
-const keyFilePath = path.join(process.cwd(), "src/chats/google-sheet-key.json");
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Đường dẫn CHÍNH XÁC đến file key JSON
+const keyFilePath = path.join(__dirname, "google-sheet-key.json");
 
 const auth = new google.auth.GoogleAuth({
     keyFile: keyFilePath,
