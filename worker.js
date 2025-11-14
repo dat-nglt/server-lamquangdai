@@ -107,11 +107,11 @@ const worker = new Worker(
                         jsonData.mucDoQuanTam
                     }\n📞Vui lòng phân bổ liên hệ lại khách hàng ngay!`;
 
-                    try {
-                        await appendJsonToSheet("data-m-1", jsonData);
-                    } catch (error) {
-                        logger.error("Đã có lỗi xảy ra trong quá trình thực hiện ghi dữ liệu vào sheet")
-                    }
+                    // try {
+                    //     await appendJsonToSheet("data-m-1", jsonData);
+                    // } catch (error) {
+                    //     logger.error("Đã có lỗi xảy ra trong quá trình thực hiện ghi dữ liệu vào sheet")
+                    // }
                     try {
                         await informationForwardingSynthesisService(
                             UID,
