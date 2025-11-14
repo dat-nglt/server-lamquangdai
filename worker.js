@@ -106,11 +106,19 @@ const worker = new Worker(
                         jsonData.mucDoQuanTam
                     }\n📞Vui lòng phân bổ liên hệ lại khách hàng ngay!`;
 
-                    // try {
-                    //     await appendJsonToSheet("data-m-1", jsonData);
-                    // } catch (error) {
-                    //     logger.error("Đã có lỗi xảy ra trong quá trình thực hiện ghi dữ liệu vào sheet")
-                    // }
+                    // BƯỚC 1: LƯU VÀO SHEET (Backup)
+                    try {
+                        await appendJsonToSheet("data-m-1", jsonData);
+                    } catch (sheetError) {
+                        // Lỗi nghiêm trọng: Không lưu được vào DB
+                        // Phải dừng lại và báo lỗi, KHÔNG gửi Zalo
+                        logger.error(
+                            `[Worker] LỖI NGHIÊM TRỌNG: Không thể ghi Sheet cho SĐT ${jsonData.soDienThoai}:`,
+                            sheetError.message
+                        );
+                        // Ném lỗi này ra để worker bên ngoài biết và retry
+                        throw sheetError;
+                    }
                     try {
                         await informationForwardingSynthesisService(
                             UID,

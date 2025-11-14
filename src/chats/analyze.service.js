@@ -183,8 +183,6 @@ export const informationForwardingSynthesisService = async (
         logger.warn(
             `Không thể gửi thông tin SĐT ${phoneNumberSent} cho bất kỳ Lead nào.`
         );
-        // Bạn có thể ném lỗi ở đây nếu muốn báo cho bên ngoài biết là đã thất bại hoàn toàn
-        // throw new Error("Failed to send lead info to any lead");
     }
 
     // (Tùy chọn) Trả về kết quả
