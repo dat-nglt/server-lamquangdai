@@ -10,7 +10,6 @@ import {
     analyzeUserMessageService,
     informationForwardingSynthesisService,
 } from "./src/chats/analyze.service.js";
-// import { appendJsonToSheet } from "./src/chats/googleSheet.js";
 
 const connection = {
     host: process.env.REDIS_HOST || "localhost",
@@ -106,20 +105,6 @@ const worker = new Worker(
                     }\n- Mức độ quan tâm: ${
                         jsonData.mucDoQuanTam
                     }\n📞Vui lòng phân bổ liên hệ lại khách hàng ngay!`;
-
-                    // BƯỚC 1: LƯU VÀO SHEET (Backup)
-                    // try {
-                    //     await appendJsonToSheet("data-m-1", jsonData);
-                    // } catch (sheetError) {
-                    //     // Lỗi nghiêm trọng: Không lưu được vào DB
-                    //     // Phải dừng lại và báo lỗi, KHÔNG gửi Zalo
-                    //     logger.error(
-                    //         `[Worker] LỖI NGHIÊM TRỌNG: Không thể ghi Sheet cho SĐT ${jsonData.soDienThoai}:`,
-                    //         sheetError.message
-                    //     );
-                    //     // Ném lỗi này ra để worker bên ngoài biết và retry
-                    //     throw sheetError;
-                    // }
 
                     try {
                         await informationForwardingSynthesisService(
