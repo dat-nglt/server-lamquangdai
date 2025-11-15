@@ -36,12 +36,12 @@ export const sendZaloMessage = async (UID, text, accessToken) => {
         const responseMessage = response.data.message;
         if (responseMessage.toLowerCase() === "success") {
             logger.info(
-                `[Zalo API] Đã gửi tin nhắn Zalo thành công đến khách hàng [UID: ${UID}]`
+                `[Zalo API] Đã gửi phản hồi thành công đến khách hàng [UID: ${UID}]`
             );
             return;
         } else {
             logger.error(
-                "[Zalo API] Đã có lỗi xảy ra trong quá trình gửi tin nhắn đến khách hàng [UID: ${UID}"
+                `[Zalo API] Đã có lỗi xảy ra trong quá trình phản hồi đến [${UID}`
             );
             return;
         }
@@ -80,13 +80,9 @@ export const extractDisplayNameFromMessage = async (UID, accessToken) => {
         const latestMessage = messages[0] || null;
 
         if (!latestMessage) {
-            logger.warn(`[Zalo API] UID ${UID} chưa có tin nhắn nào`);
+            logger.warn(`[Zalo API] [${UID}] chưa có tin nhắn nào`);
             return null;
         }
-
-        logger.info(
-            `[Zalo API] Đã trích xuất tên người dùng từ tin nhắn qua OA [UID: ${UID} - UN: ${latestMessage?.from_display_name}]: `
-        );
         return latestMessage;
     } catch (error) {
         logger.error(

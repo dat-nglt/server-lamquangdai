@@ -22,7 +22,7 @@ export const handleZaloWebhook = async (req, res) => {
         ];
         if (!acceptUIDs.includes(UID)) {
             logger.warn(
-                `[Webhook] Bỏ qua tin nhắn từ [UID: ${UID} - ${messageFromUser}]`
+                `[Webhook] Bỏ qua tin nhắn từ [${UID} - ${messageFromUser}]`
             );
             return res.status(200).send("OK (Test user ignored)");
         }
@@ -63,9 +63,9 @@ export const handleZaloWebhook = async (req, res) => {
         );
 
         logger.info(
-            `[Webhook] Đã gộp/đặt lại timer cho UID: ${UID} - ${messageFromUser}. Sẽ xử lý sau ${
+            `[Webhook] Đã tiếp nhận và tổng hợp tin nhắn cho UID: ${UID} - ${messageFromUser}. Sẽ xử lý sau ${
                 DEBOUNCE_DELAY / 1000
-            }s.`
+            }s nếu không có thêm yêu cầu.`
         ); // 6. Phản hồi 200 OK cho Zalo NGAY LẬP TỨC
 
         res.status(200).send("OK");

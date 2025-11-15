@@ -96,13 +96,13 @@ export const analyzeUserMessageService = async (
             null;
 
         if (!textMessage) {
-            logger.warn(`[AI Analyze] ⚠️ Phản hồi rỗng cho user ${UID}`);
+            logger.warn(`[AI Analyze] Phản hồi rỗng cho [${UID}]`);
             throw new Error("Không đủ dữ liệu để phân tích (phản hồi rỗng)");
         }
         return textMessage;
     } catch (error) {
         logger.error(
-            `[AI Analyze Error] Lỗi khi gọi Gemini - Phân tích hội thoại giữa OA & [UID: ${UID}]`,
+            `[AI Analyze Error] Lỗi khi gọi Gemini - Phân tích hội thoại giữa OA & [${UID}]`,
             error.message
         );
         // Ném lỗi này ra để worker bắt
@@ -127,7 +127,7 @@ export const informationForwardingSynthesisService = async (
             dataCustomer,
             accessToken
         );
-        logger.info(`Đã gửi thông tin khách hàng đến Lead [UID: ${LEAD_UID}]`);
+        logger.info(`Đã gửi thông tin khách hàng đến Lead [${LEAD_UID}]`);
 
         // Đánh dấu SĐT này đã được gửi thành công.
         conversationService.setLeadSent(UID, phoneNumberSent);
@@ -135,7 +135,7 @@ export const informationForwardingSynthesisService = async (
         return response; // Trả về phản hồi từ Zalo
     } catch (error) {
         logger.error(
-            `Lỗi khi gửi thông tin Lead đến [UID: ${LEAD_UID}]:`,
+            `Lỗi khi gửi thông tin Lead đến [${LEAD_UID}]:`,
             error.message
         ); // Ném lỗi để worker biết (mặc dù job chính vẫn có thể thành công)
         throw new Error("Failed to send lead info");

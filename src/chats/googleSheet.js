@@ -60,10 +60,6 @@ export const appendJsonToSheet = async (sheetName, jsonData) => {
         return true;
     } catch (error) {
         logger.error(`[Sheet] Lỗi khi ghi file: ${error.message}`);
-
-        // ---- SỬA Ở ĐÂY ----
-        // return false; // Lỗi cũ: nuốt lỗi
         throw error; // Lỗi mới: Ném lỗi ra để worker bắt
-        // ------------------
     }
 };

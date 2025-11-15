@@ -58,7 +58,7 @@ const worker = new Worker(
         }
 
         logger.info(
-            `[Worker] Bắt đầu xử lý job [${job.id}] cho UID: ${UID}: ${messageFromUser}`
+            `[Worker] Bắt đầu xử lý phiên trò chuyện [${job.id}] cho ${UID} với nội dung: ${messageFromUser}`
         );
 
         try {
@@ -142,7 +142,7 @@ const worker = new Worker(
             }
 
             logger.info(
-                `[Worker] Đang gọi AI Chat cho UID [${UID}] Nội dung [${messageFromUser}]`
+                `[Worker] Đang gọi AI phản hồi cho phiên trò chuyện [${UID}]  [${messageFromUser}]`
             ); // 4. Xử lý chat với AI (dùng tin đã gộp)
 
             const messageFromAI = await handleChatService(messageFromUser, UID); // 5. Lưu phản hồi AI
@@ -157,14 +157,16 @@ const worker = new Worker(
 
             await sendZaloMessage(UID, messageFromAI, accessToken);
 
-            logger.info(`[Worker] Job [${job.id}] HOÀN THÀNH cho UID: ${UID}`);
+            logger.info(
+                `[Worker] Phiên trò chuyện [${job.id}] đã xử lý xong cho [${UID}]`
+            );
             // 4. Xóa key đó đi
             await redisClient.del(pendingMessageKey);
         } catch (error) {
             // BẤT KỲ LỖI NÀO BỊ NÉM RA (chủ yếu là 503 từ handleChatService)
             // Sẽ bị bắt ở đây.
             logger.error(
-                `[Worker] Job [${job.id}] THẤT BẠI cho UID ${UID}: ${error.message}. Sẽ thử lại...`
+                `[Worker] Phiên làm việc [${job.id}] xử lý thất bại cho ${UID}: ${error.message}. Sẽ thực hiện lại...`
             ); // Ném lỗi này ra ngoài để BullMQ biết và retry job
             throw error;
         }
@@ -173,7 +175,7 @@ const worker = new Worker(
 );
 
 worker.on("completed", (job) => {
-    logger.info(`[Worker] Đã hoàn thành tác vụ ${job.id}`);
+    logger.info(`[Worker] Đã hoàn thành phiên làm việc [${job.id}]`);
 });
 
 worker.on("failed", (job, err) => {
