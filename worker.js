@@ -56,6 +56,9 @@ const worker = new Worker(
         if (!accessToken) {
             logger.error(`Không nhận được accessToken`);
         }
+
+        logger.error(accessToken);
+
         logger.info(
             `[Worker] Bắt đầu xử lý job [${job.id}] cho UID: ${UID}: ${messageFromUser}`
         );
@@ -153,6 +156,8 @@ const worker = new Worker(
                     50
                 )}...`
             ); // 6. Gửi tin nhắn trả lời "thật" cho Zalo
+
+            console.log(UID);
 
             await sendZaloMessage(UID, messageFromAI, accessToken);
 
