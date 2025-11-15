@@ -33,6 +33,7 @@ export const sendZaloMessage = async (UID, text, accessToken) => {
 
     try {
         const response = await axios.post(url, payload, { headers });
+        console.log(JSON.stringify(response.data));
         logger.info(
             `[Zalo API] Đã gửi tin nhắn Zalo thành công đến khách hàng [UID: ${UID}]`
         );
@@ -126,7 +127,7 @@ export const getValidAccessToken = async () => {
     if (expireTime - now > BUFFER_TIME) {
         return tokenData.access_token;
     }
-    
+
     console.log("[Zalo API] Zalo Token hết hạn, đang tự động refresh...");
     return await refreshAccessToken(tokenData);
 };
