@@ -14,18 +14,19 @@ export const handleZaloWebhook = async (req, res) => {
             return res.status(400).send("Invalid webhook data");
         }
 
-        const acceptUIDs = [
-            "7365147034329534561",
-            "6261117697809429940",
-            "5584155984018191145",
-            "9032072449004512527",
-        ];
-        if (!acceptUIDs.includes(UID)) {
-            logger.warn(
-                `[Webhook] Bỏ qua tin nhắn từ [${UID} - ${messageFromUser}]`
-            );
-            return res.status(200).send("OK (Test user ignored)");
-        }
+        // Trial UID
+        // const acceptUIDs = [
+        //     "7365147034329534561",
+        //     "6261117697809429940",
+        //     "5584155984018191145",
+        //     "9032072449004512527",
+        // ];
+        // if (!acceptUIDs.includes(UID)) {
+        //     logger.warn(
+        //         `[Webhook] Bỏ qua tin nhắn từ [${UID} - ${messageFromUser}]`
+        //     );
+        //     return res.status(200).send("OK (Test user ignored)");
+        // }
 
         // --- [LOGIC DEBOUNCE MỚI] ---
 
