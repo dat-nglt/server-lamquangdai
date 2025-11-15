@@ -111,10 +111,6 @@ export const getValidAccessToken = async () => {
     const expireTime = new Date(tokenData.access_token_expires_at).getTime();
     const remainingMinutes = ((expireTime - now) / 1000 / 60).toFixed(1);
 
-    if (expireTime - now > BUFFER_TIME) {
-        return tokenData.access_token;
-    }
-
     logger.warn(
         `[Zalo Token] Token sắp hết hạn! Kích hoạt Refresh tự động sẽ được thực thi sau ${remainingMinutes} phút nữa...`
     );
@@ -127,6 +123,10 @@ export const getValidAccessToken = async () => {
         ).toLocaleString()}`
     );
 
+    if (expireTime - now > BUFFER_TIME) {
+        return tokenData.access_token;
+    }
+    
     console.log("[Zalo API] Zalo Token hết hạn, đang tự động refresh...");
     return await refreshAccessToken(tokenData);
 };
