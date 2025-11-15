@@ -33,11 +33,18 @@ export const sendZaloMessage = async (UID, text, accessToken) => {
 
     try {
         const response = await axios.post(url, payload, { headers });
-        console.log(JSON.stringify(response.data));
-        logger.info(
-            `[Zalo API] Đã gửi tin nhắn Zalo thành công đến khách hàng [UID: ${UID}]`
-        );
-        return response.data;
+        const responseMessage = response.data.message;
+        if (responseMessage.toLowerCase() === "success") {
+            logger.info(
+                `[Zalo API] Đã gửi tin nhắn Zalo thành công đến khách hàng [UID: ${UID}]`
+            );
+            return;
+        } else {
+            logger.error(
+                "[Zalo API] Đã có lỗi xảy ra trong quá trình gửi tin nhắn đến khách hàng [UID: ${UID}"
+            );
+            return;
+        }
     } catch (error) {
         logger.error(
             `[Zalo API] Zalo API Error (sendZaloMessage to ${UID}):`,
