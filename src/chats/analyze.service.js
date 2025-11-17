@@ -3,20 +3,13 @@ import { SYSTEM_INSTRUCTION_ANALYZE } from "../promts/promt.v1.analyze.js";
 import { extractPhoneNumber } from "../utils/extractPhoneNumber.js";
 import conversationService from "../utils/conversation.js";
 import logger from "../utils/logger.js";
-import {
-    extractDisplayNameFromMessage,
-    sendZaloMessage,
-} from "./zalo.service.js"; // Import hàm gửi Zalo
+import { extractDisplayNameFromMessage, sendZaloMessage } from "./zalo.service.js"; // Import hàm gửi Zalo
 
 const API_KEY = process.env.GEMENI_API_KEY;
 const ai = new GoogleGenAI({ apiKey: API_KEY });
 
 // (Giữ nguyên analyzeUserMessageService, không cần sửa)
-export const analyzeUserMessageService = async (
-    messageFromUser,
-    UID,
-    accessToken
-) => {
+export const analyzeUserMessageService = async (messageFromUser, UID, accessToken) => {
     const phoneNumberFromUser = extractPhoneNumber(messageFromUser);
     let displayName = "Anh/chị";
     let phoneInfo = null;
@@ -26,15 +19,10 @@ export const analyzeUserMessageService = async (
     }
 
     try {
-        const latestMessageFromUID = await extractDisplayNameFromMessage(
-            UID,
-            accessToken
-        );
+        const latestMessageFromUID = await extractDisplayNameFromMessage(UID, accessToken);
         displayName = latestMessageFromUID?.from_display_name;
     } catch (error) {
-        logger.warn(
-            `Không thể xác định tên người dùng - Giá trị mặc định: Anh/chị`
-        );
+        logger.warn(`Không thể xác định tên người dùng - Giá trị mặc định: Anh/chị`);
     }
 
     const chat = ai.chats.create({
@@ -48,20 +36,14 @@ export const analyzeUserMessageService = async (
 
     const prompt = `
   Dưới đây là hội thoại trước đó với khách hàng (nếu có):
-  ${
-      conversationHistory.length
-          ? conversationService.getFormattedHistory(UID)
-          : "(Chưa có hội thoại trước đó)"
-  }
+  ${conversationHistory.length ? conversationService.getFormattedHistory(UID) : "(Chưa có hội thoại trước đó)"}
   
   Tin nhắn mới nhất của người dùng: "${messageFromUser}"
   
   ---
   **Thông tin đã biết:**
   * Tên khách hàng (từ hệ thống/lịch sử): "${displayName}"
-  * Số điện thoại (từ regex): ${
-      phoneInfo ? `"${phoneInfo}"` : "(Chưa phát hiện)"
-  }
+  * Số điện thoại (từ regex): ${phoneInfo ? `"${phoneInfo}"` : "(Chưa phát hiện)"}
 
   ---
   **Nhiệm vụ:**
@@ -91,9 +73,7 @@ export const analyzeUserMessageService = async (
     // Thêm try...catch ở đây để nó cũng ném lỗi 503 nếu có
     try {
         const analyzeFromAI = await chat.sendMessage({ message: prompt });
-        const textMessage =
-            analyzeFromAI?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ||
-            null;
+        const textMessage = analyzeFromAI?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || null;
 
         if (!textMessage) {
             logger.warn(`[AI Analyze] Phản hồi rỗng cho [${UID}]`);
@@ -101,10 +81,7 @@ export const analyzeUserMessageService = async (
         }
         return textMessage;
     } catch (error) {
-        logger.error(
-            `[AI Analyze Error] Lỗi khi gọi Gemini - Phân tích hội thoại giữa OA & [${UID}]`,
-            error.message
-        );
+        logger.error(`[AI Analyze Error] Lỗi khi gọi Gemini - Phân tích hội thoại giữa OA & [${UID}]`, error.message);
         // Ném lỗi này ra để worker bắt
         throw error;
     }
@@ -122,11 +99,7 @@ export const informationForwardingSynthesisService = async (
     const LEAD_UID = "7365147034329534561";
 
     try {
-        const response = await sendZaloMessage(
-            LEAD_UID,
-            dataCustomer,
-            accessToken
-        );
+        const response = await sendZaloMessage(LEAD_UID, dataCustomer, accessToken);
         logger.info(`Đã gửi thông tin khách hàng đến Lead [${LEAD_UID}]`);
 
         // Đánh dấu SĐT này đã được gửi thành công.
@@ -134,10 +107,7 @@ export const informationForwardingSynthesisService = async (
 
         return response; // Trả về phản hồi từ Zalo
     } catch (error) {
-        logger.error(
-            `Lỗi khi gửi thông tin Lead đến [${LEAD_UID}]:`,
-            error.message
-        ); // Ném lỗi để worker biết (mặc dù job chính vẫn có thể thành công)
+        logger.error(`Lỗi khi gửi thông tin Lead đến [${LEAD_UID}]:`, error.message); // Ném lỗi để worker biết (mặc dù job chính vẫn có thể thành công)
         throw new Error("Failed to send lead info");
     }
 };

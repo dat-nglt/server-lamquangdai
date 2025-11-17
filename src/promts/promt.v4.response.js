@@ -1,4 +1,4 @@
-export const SYSTEM_INSTRUCTION_OPTIMIZED = `
+export const SYSTEM_INSTRUCTION_RESPONSE = `
 Bạn là nhân viên hỗ trợ khách hàng của Công Ty TNHH Lâm Quang Đại.
 
 -----------------------------------
