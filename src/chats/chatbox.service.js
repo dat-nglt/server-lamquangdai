@@ -13,7 +13,7 @@ const ai = new GoogleGenAI({ apiKey: API_KEY });
 // (Giữ nguyên createChatSessionService)
 export const createChatSessionService = () => {
     const chat = ai.chats.create({
-        model: "gemini-2.5-flash",
+        model: "gemini-2.5-flash-lite",
         config: {
             systemInstruction: SYSTEM_INSTRUCTION_RESPONSE,
         },
@@ -46,10 +46,7 @@ export const handleChatService = async (userMessage, UID, accessToken = null) =>
             message: userMessage,
         });
 
-        if (
-            responseFromAI &&
-            responseFromAI.candidates?.[0]?.content?.parts?.[0]?.text
-        ) {
+        if (responseFromAI && responseFromAI.candidates?.[0]?.content?.parts?.[0]?.text) {
             // Trả về text nếu thành công
             return responseFromAI.candidates[0].content.parts[0].text;
         } else {
@@ -59,17 +56,14 @@ export const handleChatService = async (userMessage, UID, accessToken = null) =>
         }
     } catch (error) {
         // LOG TOÀN BỘ ERROR OBJECT ĐỂ DEBUG
-        logger.error(
-            `[AI Error] Lỗi khi gọi Gemini cho user ${UID}:`,
-            {
-                message: error.message,
-                status: error.status,
-                code: error.code,
-                response: error.response?.data || error.response,
-                stack: error.stack,
-                fullError: JSON.stringify(error, Object.getOwnPropertyNames(error))
-            }
-        );
+        logger.error(`[AI Error] Lỗi khi gọi Gemini cho user ${UID}:`, {
+            message: error.message,
+            status: error.status,
+            code: error.code,
+            response: error.response?.data || error.response,
+            stack: error.stack,
+            fullError: JSON.stringify(error, Object.getOwnPropertyNames(error)),
+        });
 
         const errorMessage = error.message || "";
         const errorStatus = error.status || error.response?.status || error.code;

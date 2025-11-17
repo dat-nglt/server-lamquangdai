@@ -2,7 +2,7 @@ import logger from "../utils/logger.js";
 import { zaloChatQueue } from "../chats/queue.service.js"; // Đảm bảo import queue
 
 // Thời gian chờ (debounce) cho một yêu cầu tin nhắn được gửi đến
-const DEBOUNCE_DELAY = 15000; // 15 giây
+const DEBOUNCE_DELAY = 12000; // 12 giây
 
 export const handleZaloWebhook = async (req, res) => {
     try {
