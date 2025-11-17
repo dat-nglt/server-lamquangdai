@@ -6,6 +6,7 @@ const DEBOUNCE_DELAY = 10000; // 20 giây
 
 export const handleZaloWebhook = async (req, res) => {
       try {
+            res.status(200).send("OK");
             const UID = req.body?.sender?.id;
             const messageFromUser = req.body?.message?.text;
 
@@ -65,9 +66,7 @@ export const handleZaloWebhook = async (req, res) => {
                   `[Webhook] Đã tiếp nhận và tổng hợp tin nhắn cho UID: ${UID} - ${messageFromUser}. Sẽ xử lý sau ${
                         DEBOUNCE_DELAY / 1000
                   }s nếu không có thêm yêu cầu.`
-            ); // 6. Phản hồi 200 OK cho Zalo NGAY LẬP TỨC
-
-            res.status(200).send("OK");
+            );
       } catch (error) {
             logger.error("[Webhook Controller] Lỗi nghiêm trọng:", error);
             res.status(500).send("Internal Server Error");
