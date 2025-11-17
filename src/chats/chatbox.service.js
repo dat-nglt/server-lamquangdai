@@ -8,7 +8,7 @@ if (!API_KEY) {
     throw new Error("GEMINI_API_KEY chưa được thiết lập trong file .env");
 }
 
-const ai = new GoogleGenAI({ apiKey: API_KEY });
+const ai = new GoogleGenAI({ apiKey: API_KEY }); // Khởi tạo client Gemini AI
 
 // (Giữ nguyên createChatSessionService)
 export const createChatSessionService = () => {
@@ -22,7 +22,7 @@ export const createChatSessionService = () => {
 };
 
 // (Giữ nguyên getOrCreateChatSession)
-const chatSessions = new Map();
+const chatSessions = new Map(); // Lưu trữ các phiên chat theo UID người dùng
 const getOrCreateChatSession = (UID) => {
     if (chatSessions.has(UID)) {
         // Nếu người dùng đã tồn tại session chat => tiến hành truy xuất tiếp và xử lý với UID
@@ -39,10 +39,11 @@ const getOrCreateChatSession = (UID) => {
 
 // *** ĐÂY LÀ PHẦN QUAN TRỌNG ĐƯỢC CẬP NHẬT ***
 export const handleChatService = async (userMessage, UID, accessToken = null) => {
-    const chatSession = getOrCreateChatSession(UID);
+    const chatSession = getOrCreateChatSession(UID); // Lấy hoặc tạo mới session chat cho UID
 
     try {
         const responseFromAI = await chatSession.sendMessage({
+            // Gửi tin nhắn của user đến Gemini AI
             message: userMessage,
         });
 
@@ -52,7 +53,7 @@ export const handleChatService = async (userMessage, UID, accessToken = null) =>
         } else {
             // Trường hợp AI trả về rỗng hoặc bị chặn (lỗi "cứng")
             logger.warn(`[AI Warning] Phản hồi rỗng/bị chặn cho [${UID}]`);
-            return "Cảm ơn anh/chị đã tin tưởng liên hệ đến Lâm Quang Đại, anh chị vui lòng để lại số điện thoại để em chuyển tiếp đến bộ phận kinh doanh hỗ trợ mình thêm ạ";
+            return "Dạ, hệ thống đang bảo trì tạm thời. Anh/chị vui lòng để lại số điện thoại để em chuyển tiếp đến bộ phận kinh doanh hỗ trợ trực tiếp mình ạ.";
         }
     } catch (error) {
         // LOG TOÀN BỘ ERROR OBJECT ĐỂ DEBUG
@@ -60,9 +61,6 @@ export const handleChatService = async (userMessage, UID, accessToken = null) =>
             message: error.message,
             status: error.status,
             code: error.code,
-            response: error.response?.data || error.response,
-            stack: error.stack,
-            fullError: JSON.stringify(error, Object.getOwnPropertyNames(error)),
         });
 
         const errorMessage = error.message || "";

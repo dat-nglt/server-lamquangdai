@@ -10,17 +10,17 @@ const ai = new GoogleGenAI({ apiKey: API_KEY });
 
 // (Giữ nguyên analyzeUserMessageService, không cần sửa)
 export const analyzeUserMessageService = async (messageFromUser, UID, accessToken) => {
-    const phoneNumberFromUser = extractPhoneNumber(messageFromUser);
-    let displayName = "Anh/chị";
+    const phoneNumberFromUser = extractPhoneNumber(messageFromUser); // Trích xuất số điện thoại từ tin nhắn
+    let displayName = "Anh/chị"; // Giá trị mặc định nếu không lấy được tên người dùng
     let phoneInfo = null;
     if (phoneNumberFromUser && phoneNumberFromUser.length > 0) {
-        phoneInfo = phoneNumberFromUser.join(", ");
+        phoneInfo = phoneNumberFromUser.join(", "); // Nối các số điện thoại thành chuỗi
         logger.info(`[Data] Phát hiện SĐT: ${phoneInfo}`);
     }
 
     try {
         const latestMessageFromUID = await extractDisplayNameFromMessage(UID, accessToken);
-        displayName = latestMessageFromUID?.from_display_name;
+        displayName = latestMessageFromUID?.from_display_name || displayName;
     } catch (error) {
         logger.warn(`Không thể xác định tên người dùng - Giá trị mặc định: Anh/chị`);
     }
@@ -32,7 +32,7 @@ export const analyzeUserMessageService = async (messageFromUser, UID, accessToke
         },
     });
 
-    const conversationHistory = conversationService.getConversationHistory(UID);
+    const conversationHistory = conversationService.getConversationHistory(UID); // Lấy lịch sử hội thoại của UID cho mục phân tích
 
     const prompt = `
   Dưới đây là hội thoại trước đó với khách hàng (nếu có):
@@ -72,42 +72,63 @@ export const analyzeUserMessageService = async (messageFromUser, UID, accessToke
 
     // Thêm try...catch ở đây để nó cũng ném lỗi 503 nếu có
     try {
-        const analyzeFromAI = await chat.sendMessage({ message: prompt });
+        const analyzeFromAI = await chat.sendMessage({ message: prompt }); // Gọi AI để phân tích
         const textMessage = analyzeFromAI?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || null;
 
         if (!textMessage) {
+            // Nếu phản hồi rỗng thì ném lỗi
             logger.warn(`[AI Analyze] Phản hồi rỗng cho [${UID}]`);
             throw new Error("Không đủ dữ liệu để phân tích (phản hồi rỗng)");
         }
         return textMessage;
     } catch (error) {
         logger.error(`[AI Analyze Error] Lỗi khi gọi Gemini - Phân tích hội thoại giữa OA & [${UID}]`, error.message);
-        // Ném lỗi này ra để worker bắt
-        throw error;
+        throw error; // Ném lỗi ra ngoài để worker biết và retry job
     }
 };
 
-export const informationForwardingSynthesisService = async (
-    UID,
-    dataCustomer,
-    accessToken,
-    phoneNumberSent // Tham số này đã được thêm chính xác
-) => {
-    // UID của Lead/Quản lý
-    // const LEAD_UID = "5584155984018191145";
-    // const LEAD_UID = "1591235795556991810";
-    const LEAD_UID = "7365147034329534561";
+export const informationForwardingSynthesisService = async (UID, dataCustomer, accessToken, phoneNumberSent) => {
+    // Danh sách UID của các Lead/Quản lý
+    const LEAD_UIDS = [
+        // "5584155984018191145",
+        // "1591235795556991810",
+        "7365147034329534561",
+    ];
 
     try {
-        const response = await sendZaloMessage(LEAD_UID, dataCustomer, accessToken);
-        logger.info(`Đã gửi thông tin khách hàng đến Lead [${LEAD_UID}]`);
+        // Gửi tin nhắn đồng thời cho tất cả Lead UIDs
+        const sendPromises = LEAD_UIDS.map(async (leadUID) => {
+            try {
+                const response = await sendZaloMessage(leadUID, dataCustomer, accessToken);
+                logger.info(`Đã gửi thông tin khách hàng đến Lead [${leadUID}]`);
+                return { leadUID, success: true, response };
+            } catch (error) {
+                logger.error(`Lỗi khi gửi thông tin đến Lead [${leadUID}]:`, error.message);
+                return { leadUID, success: false, error: error.message };
+            }
+        });
 
-        // Đánh dấu SĐT này đã được gửi thành công.
-        conversationService.setLeadSent(UID, phoneNumberSent);
+        const results = await Promise.all(sendPromises);
 
-        return response; // Trả về phản hồi từ Zalo
+        // Kiểm tra kết quả gửi
+        const successCount = results.filter((result) => result.success).length;
+        const failCount = results.length - successCount;
+
+        logger.info(`Gửi thông tin khách hàng: ${successCount} thành công, ${failCount} thất bại`);
+
+        if (successCount > 0) {
+            // Đánh dấu SĐT này đã được gửi thành công nếu có ít nhất 1 Lead nhận được
+            conversationService.setLeadSent(UID, phoneNumberSent);
+        }
+
+        if (failCount === results.length) {
+            // Nếu tất cả đều thất bại
+            throw new Error("Không thể gửi thông tin đến bất kỳ Lead nào");
+        }
+
+        return results;
     } catch (error) {
-        logger.error(`Lỗi khi gửi thông tin Lead đến [${LEAD_UID}]:`, error.message); // Ném lỗi để worker biết (mặc dù job chính vẫn có thể thành công)
+        logger.error(`Lỗi nghiêm trọng khi gửi thông tin Lead:`, error.message);
         throw new Error("Failed to send lead info");
     }
 };

@@ -17,14 +17,14 @@ const ZALO_AUTH_URL = process.env.ZALO_AUTH_URL;
 export const sendZaloMessage = async (UID, text, accessToken) => {
     if (!UID || !text) {
         // Kiểm tra thông tin UID và Nội dung tin nhắn người dùng
-        logger.warn("Bỏ qua gửi tin Zalo vì thiếu UID hoặc text.");
+        logger.warn("[Zalo API] Thiếu UID hoặc nội dung tin nhắn để gửi");
         return;
     }
 
-    const url = `${ZALO_API}/v3.0/oa/message/cs`;
+    const url = `${ZALO_API}/v3.0/oa/message/cs`; // Endpoint gửi tin nhắn CS
     const payload = {
-        recipient: { user_id: UID },
-        message: { text: text },
+        recipient: { user_id: UID }, // Đối tượng người nhận
+        message: { text: text }, // Nội dung tin nhắn
     };
     const headers = {
         access_token: accessToken,
@@ -35,25 +35,16 @@ export const sendZaloMessage = async (UID, text, accessToken) => {
         const response = await axios.post(url, payload, { headers });
         const responseMessage = response.data.message;
         if (responseMessage.toLowerCase() === "success") {
-            logger.info(
-                `[Zalo API] Đã gửi phản hồi thành công đến khách hàng [UID: ${UID}]`
-            );
+            logger.info(`[Zalo API] Đã gửi phản hồi thành công đến khách hàng [UID: ${UID}]`);
             return;
         } else {
-            logger.error(
-                `[Zalo API] Đã có lỗi xảy ra trong quá trình phản hồi đến [${UID}`
-            );
+            logger.error(`[Zalo API] Đã có lỗi xảy ra trong quá trình phản hồi đến [${UID}`);
             return;
         }
     } catch (error) {
-        logger.error(
-            `[Zalo API] Zalo API Error (sendZaloMessage to ${UID}):`,
-            error.response?.data?.message
-        );
+        logger.error(`[Zalo API] Zalo API Error (sendZaloMessage to ${UID}):`, error.response?.data?.message);
         // Ném lỗi để worker có thể retry nếu cần (ví dụ: lỗi 500 từ Zalo)
-        throw new Error(
-            error.response?.data?.message || "Failed to send Zalo message"
-        );
+        throw new Error(error.response?.data?.message || "Failed to send Zalo message");
     }
 };
 
@@ -64,9 +55,7 @@ export const extractDisplayNameFromMessage = async (UID, accessToken) => {
     }
 
     // Chuyển body JSON thành query string
-    const queryData = encodeURIComponent(
-        JSON.stringify({ user_id: UID, offset: 0, count: 1 })
-    );
+    const queryData = encodeURIComponent(JSON.stringify({ user_id: UID, offset: 0, count: 1 }));
     const url = `${ZALO_API}/v2.0/oa/conversation?data=${queryData}`;
 
     const headers = {
@@ -80,7 +69,7 @@ export const extractDisplayNameFromMessage = async (UID, accessToken) => {
         const latestMessage = messages[0] || null;
 
         if (!latestMessage) {
-            logger.warn(`[Zalo API] [${UID}] chưa có tin nhắn nào`);
+            logger.warn(`[Zalo API] [${UID}] - Không tìm thấy tin nhắn nào để trích lọc tên hiển thị`);
             return null;
         }
         return latestMessage;
@@ -92,10 +81,7 @@ export const extractDisplayNameFromMessage = async (UID, accessToken) => {
                 2
             )}`
         );
-        throw new Error(
-            error.response?.data?.message ||
-                "Failed to extract display name from Zalo message"
-        );
+        throw new Error(error.response?.data?.message || "Failed to extract display name from Zalo message");
     }
 };
 
@@ -103,36 +89,28 @@ export const getValidAccessToken = async () => {
     // 1. Lấy token duy nhất từ DB (Singleton)
     const tokenData = await ZaloTokens.findOne();
     if (!tokenData) {
-        throw new Error(
-            "CRITICAL: Chưa có dữ liệu Token trong DB. Vui lòng Admin đăng nhập thủ công lần đầu!"
-        );
+        throw new Error("CRITICAL: Chưa có dữ liệu Token trong DB. Vui lòng Admin đăng nhập thủ công lần đầu!");
     }
 
     // 2. Kiểm tra thời gian hết hạn
-    const minuteTime = 10;
+    const minuteTime = 10; // Số phút trước khi hết hạn để kích hoạt refresh
     const BUFFER_TIME = minuteTime * 60 * 1000; // Thời gian refresh sớm hơn so với hạn thực tế => tránh lỗi mạng vào thời điểm refresh
-    const now = new Date().getTime();
-    const expireTime = new Date(tokenData.access_token_expires_at).getTime();
-    const remainingMinutes = ((expireTime - now) / 1000 / 60).toFixed(1);
+    const now = new Date().getTime(); // Thời điểm hiện tại
+    const expireTime = new Date(tokenData.access_token_expires_at).getTime(); // Thời điểm hết hạn
+    const remainingMinutes = ((expireTime - now) / 1000 / 60).toFixed(1); // Phút còn lại
 
     logger.warn(
         `[Zalo Token] Token sắp hết hạn! Kích hoạt Refresh tự động sẽ được thực thi sau ${remainingMinutes} phút nữa...`
     );
-    logger.warn(
-        `[Zalo Token] Thời điểm hiện tại: ${new Date().toLocaleString()}`
-    );
-    logger.warn(
-        `[Zalo Token] Thời điểm hết hạn:  ${new Date(
-            tokenData.access_token_expires_at
-        ).toLocaleString()}`
-    );
+    logger.warn(`[Zalo Token] Thời điểm hiện tại: ${new Date().toLocaleString()}`);
+    logger.warn(`[Zalo Token] Thời điểm hết hạn:  ${new Date(tokenData.access_token_expires_at).toLocaleString()}`);
 
-    if (expireTime - now > BUFFER_TIME) {
+    if (expireTime - now > BUFFER_TIME) { // Chưa đến thời điểm cần refresh
         return tokenData.access_token;
     }
 
     console.log("[Zalo API] Zalo Token hết hạn, đang tự động refresh...");
-    return await refreshAccessToken(tokenData);
+    return await refreshAccessToken(tokenData); // Thực hiện refresh và trả về access token mới
 };
 
 const refreshAccessToken = async (tokenRecord) => {
@@ -156,25 +134,19 @@ const refreshAccessToken = async (tokenRecord) => {
 
         // Kiểm tra xem Zalo có trả về lỗi không
         if (data.error) {
-            throw new Error(
-                `Zalo API Error: ${data.error_name} - ${data.error_description}`
-            );
+            throw new Error(`Zalo API Error: ${data.error_name} - ${data.error_description}`);
         }
 
         // 4. Cập nhật vào Database (Cập nhật bản ghi hiện tại, không tạo mới)
-        tokenRecord.access_token = data.access_token;
+        tokenRecord.access_token = data.access_token; // Cập nhật access token mới
         tokenRecord.refresh_token = data.refresh_token; // Luôn lưu refresh token mới
 
         // Tính toán thời gian hết hạn mới
         // data.expires_in là giây (thường là 90000s = 25h)
-        const newExpireDate = new Date(
-            Date.now() + Number(data.expires_in) * 1000
-        );
+        const newExpireDate = new Date(Date.now() + Number(data.expires_in) * 1000);
 
         // Refresh token hết hạn sau 3 tháng (tùy chính sách Zalo, ta cứ set dư ra hoặc theo logic của họ)
-        const newRefreshExpireDate = new Date(
-            Date.now() + 90 * 24 * 60 * 60 * 1000
-        );
+        const newRefreshExpireDate = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000);
 
         tokenRecord.access_token_expires_at = newExpireDate;
         tokenRecord.refresh_token_expires_at = newRefreshExpireDate;
@@ -184,10 +156,7 @@ const refreshAccessToken = async (tokenRecord) => {
         console.log("[Zalo Token] Đã refresh token thành công!");
         return data.access_token;
     } catch (error) {
-        console.error(
-            "[Zalo Token] Lỗi khi refresh Zalo Token:",
-            error.message
-        );
+        console.error("[Zalo Token] Lỗi khi refresh Zalo Token:", error.message);
         throw error;
     }
 };

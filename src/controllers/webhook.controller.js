@@ -1,23 +1,26 @@
 import logger from "../utils/logger.js";
-import { zaloChatQueue } from "../chats/queue.service.js"; // Đảm bảo import queue
+import { zaloChatQueue } from "../chats/queue.service.js";
 
-// Thời gian chờ (debounce) cho một yêu cầu tin nhắn được gửi đến
-const DEBOUNCE_DELAY = 12000; // 12 giây
+const DEBOUNCE_DELAY = 15000; // 15 giây
 
 export const handleZaloWebhook = async (req, res) => {
     try {
-        const UID = req.body?.sender?.id;
-        const messageFromUser = req.body?.message?.text;
+        const UID = req.body?.sender?.id; // Lấy UID người gửi từ webhook
+        const messageFromUser = req.body?.message?.text; // Lấy tin nhắn từ webhook
+        const eventName = req.body?.event_name; // Lấy loại sự kiện từ webhook
 
-        if (!UID || !messageFromUser) {
-            logger.warn("Webhook không hợp lệ (thiếu UID hoặc message)");
+        if (!UID || !messageFromUser || eventName !== "user_send_text") {
+            // Kiểm tra tính hợp lệ của webhook
+            logger.warn("Webhook không hợp lệ (thiếu UID hoặc message hoặc event_name không đúng)");
             return res.status(400).send("Invalid webhook data");
         }
 
         // Trial UID
         const acceptUIDs = ["7365147034329534561"];
         if (!acceptUIDs.includes(UID)) {
-            logger.warn(`[Webhook] Bỏ qua tin nhắn từ [${UID} - ${messageFromUser}]`);
+            logger.warn(
+                `[Webhook] Hệ thống đang ở giai đoạn thử nghiệp - Bỏ qua tin nhắn từ [${UID} - ${messageFromUser}]`
+            );
             return res.status(200).send("OK (Test user ignored)");
         }
 
@@ -36,7 +39,7 @@ export const handleZaloWebhook = async (req, res) => {
             // 3. Lưu tin nhắn này vào danh sách chờ trong Redis
             await redisClient.rpush(pendingMessageKey, messageFromUser);
             await redisClient.expire(pendingMessageKey, 3600);
-            logger.info(`[Webhook] Đã lưu message vào Redis key: ${pendingMessageKey}`);
+            logger.info(`[Webhook] Đã lưu message vào Redis với key: ${pendingMessageKey}`);
 
             // 4. Tìm job cũ (nếu có) đang trong hàng đợi "delayed"
             const existingJob = await zaloChatQueue.getJob(debounceJobId);
@@ -59,7 +62,9 @@ export const handleZaloWebhook = async (req, res) => {
             );
 
             logger.info(
-                `[Webhook] ✅ Đã tạo job thành công ID: ${newJob.id} cho UID: ${UID} - ${messageFromUser}. Sẽ xử lý sau ${
+                `[Webhook] ✅ Đã tạo tiến trình công việc thành công ID: ${
+                    newJob.id
+                } cho UID: ${UID} - ${messageFromUser}. Sẽ xử lý sau ${
                     DEBOUNCE_DELAY / 1000
                 }s nếu không có thêm yêu cầu.`
             );
@@ -71,9 +76,9 @@ export const handleZaloWebhook = async (req, res) => {
                 error: queueError.message,
                 stack: queueError.stack,
                 UID: UID,
-                message: messageFromUser
+                message: messageFromUser,
             });
-            
+
             // Vẫn gửi response OK để Zalo không retry
             res.status(200).send("OK (Queue Error)");
         }
