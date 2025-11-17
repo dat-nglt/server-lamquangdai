@@ -62,7 +62,7 @@ export const handleZaloWebhook = async (req, res) => {
             );
 
             logger.info(
-                `[Webhook] ✅ Đã tạo tiến trình công việc thành công ID: ${
+                `[Webhook] Đã tạo tiến trình công việc thành công ID: ${
                     newJob.id
                 } cho UID: ${UID} - ${messageFromUser}. Sẽ xử lý sau ${
                     DEBOUNCE_DELAY / 1000
