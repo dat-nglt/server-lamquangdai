@@ -79,12 +79,12 @@ const worker = new Worker(
                     logger.info(`[Worker] Gửi thông tin đến Lead cho UID ${UID}. SĐT mới: ${jsonData.soDienThoai}`);
                     const dataCustomer = `🔔 THÔNG TIN KHÁCH HÀNG MỚI
                                         
-                    👤 Tên khách hàng: ${jsonData.tenKhachHang || "Anh/chị"}
-                    📞 Số điện thoại: ${jsonData.soDienThoai}
-                    💼 Nhu cầu: ${jsonData.nhuCau}
-                    ⭐ Mức độ quan tâm: ${jsonData.mucDoQuanTam}
+    👤 Tên khách hàng: ${jsonData.tenKhachHang || "Anh/chị"}
+    📞 Số điện thoại: ${jsonData.soDienThoai}
+    💼 Nhu cầu: ${jsonData.nhuCau}
+    ⭐ Mức độ quan tâm: ${jsonData.mucDoQuanTam}
 
-                    🚨 VUI LÒNG LIÊN HỆ KHÁCH HÀNG NGAY!`;
+🚨 VUI LÒNG LIÊN HỆ KHÁCH HÀNG NGAY!`;
 
                     try {
                         await appendJsonToSheet("data-from-chatbox-ai", jsonData);
