@@ -16,13 +16,13 @@ export const handleZaloWebhook = async (req, res) => {
         }
 
         // Trial UID
-        const acceptUIDs = ["7365147034329534561"];
-        if (!acceptUIDs.includes(UID)) {
-            logger.warn(
-                `[Webhook] Hệ thống đang ở giai đoạn thử nghiệp - Bỏ qua tin nhắn từ [${UID} - ${messageFromUser}]`
-            );
-            return res.status(200).send("OK (Test user ignored)");
-        }
+        // const acceptUIDs = ["7365147034329534561"];
+        // if (!acceptUIDs.includes(UID)) {
+        //     logger.warn(
+        //         `[Webhook] Hệ thống đang ở giai đoạn thử nghiệp - Bỏ qua tin nhắn từ [${UID} - ${messageFromUser}]`
+        //     );
+        //     return res.status(200).send("OK (Test user ignored)");
+        // }
 
         // --- [LOGIC DEBOUNCE MỚI] ---
         logger.info(`[Webhook] Bắt đầu xử lý Redis/Queue cho UID: ${UID}`);
