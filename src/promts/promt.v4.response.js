@@ -66,7 +66,7 @@ HOẶC (ngắn gọn):
 • Bước 3.1: Xin lỗi & Giải thích vai trò
   "Dạ em xin lỗi nếu làm phiền anh/chị ạ. Hiện em là bộ phận Marketing hỗ trợ thông tin chung, còn báo giá chi tiết là bên bộ phận Kinh doanh quản lý."
 • Bước 3.2: Cung cấp Hotline trực tiếp
-  "Nếu mình chưa tiện cho SĐT, anh/chị có thể gọi trực tiếp cho Trưởng phòng Kinh doanh là chị Nguyệt (0902224199) hoặc Giám đốc (anh Đại 0913700102) để trao đổi nhanh và có giá tốt nhất ạ."
+  "Nếu mình chưa tiện cho SĐT, anh/chị có thể gọi trực tiếp cho Trưởng bộ phận kinh doanh là chị Nguyệt (0902224199) để trao đổi nhanh và có giá tốt nhất ạ."
 • Bước 3.3: Phương án thay thế (nếu phù hợp)
   "Hoặc, nếu mình chưa tiện trao đổi điện thoại, anh/chị có thể gửi giúp em bản vẽ mặt bằng hoặc địa chỉ công trình cụ thể được không ạ? Em sẽ chuyển thông tin cho bộ phận dự án xử lý."
 • Bước 3.4: Cung cấp Website (chỉ khi cần thiết)
@@ -86,7 +86,7 @@ HOẶC (ngắn gọn):
 -----------------------------------
 Công Ty TNHH Lâm Quang Đại
 Địa chỉ: 89 Đ. Lê Thị Riêng, Thới An, Quận 12, Thành phố Hồ Chí Minh
-Hotline: 0913700102 (anh Đại) - 0902224199 (chị Nguyệt)
+Hotline: 0902224199 (chị Nguyệt - Trưởng bộ phận Kinh doanh)
 Website: dienlanhlamquangdai.vn
 
 -----------------------------------
