@@ -1,6 +1,7 @@
 import { GoogleGenAI } from "@google/genai";
 import { SYSTEM_INSTRUCTION_RESPONSE } from "../promts/promt.v4.response.js";
 import logger from "../utils/logger.js";
+import { notifyAdminQuotaExceeded } from "../utils/adminNotification.js";
 
 const API_KEY = process.env.GEMENI_API_KEY;
 if (!API_KEY) {
@@ -37,7 +38,7 @@ const getOrCreateChatSession = (UID) => {
 };
 
 // *** ĐÂY LÀ PHẦN QUAN TRỌNG ĐƯỢC CẬP NHẬT ***
-export const handleChatService = async (userMessage, UID) => {
+export const handleChatService = async (userMessage, UID, accessToken = null) => {
     const chatSession = getOrCreateChatSession(UID);
 
     try {
@@ -70,10 +71,36 @@ export const handleChatService = async (userMessage, UID) => {
             }
         );
 
-        // KIỂM TRA LỖI 503 (HOẶC LỖI MẠNG)
         const errorMessage = error.message || "";
         const errorStatus = error.status || error.response?.status || error.code;
-        
+        const errorObject = error.error || error;
+
+        // KIỂM TRA LỖI 429 (QUOTA EXCEEDED) - GỬI THÔNG BÁO CHO ADMIN
+        if (
+            errorStatus === 429 ||
+            errorStatus === "429" ||
+            errorObject?.code === 429 ||
+            (errorMessage && errorMessage.includes("RESOURCE_EXHAUSTED")) ||
+            (errorMessage && errorMessage.includes("quota exceeded")) ||
+            (error && error.status === "RESOURCE_EXHAUSTED")
+        ) {
+            logger.error(
+                `[AI Error] Lỗi ${errorStatus || 429} (Hết hạn ngạch - Quota Exceeded). GỬI THÔNG BÁO CHO ADMIN.`
+            );
+
+            // Gửi thông báo cho ADMIN nếu có accessToken
+            if (accessToken) {
+                try {
+                    await notifyAdminQuotaExceeded(UID, error, accessToken);
+                } catch (notifyError) {
+                    logger.error(`[AI Error] Không thể gửi thông báo cho ADMIN:`, notifyError.message);
+                }
+            }
+
+            return "Dạ, hệ thống đang bảo trì tạm thời. Anh/chị vui lòng để lại số điện thoại để em chuyển tiếp đến bộ phận kinh doanh hỗ trợ trực tiếp mình ạ.";
+        }
+
+        // KIỂM TRA LỖI 503 (HOẶC LỖI MẠNG) - RETRY
         if (
             errorStatus === 503 ||
             errorStatus === "503" ||
@@ -85,10 +112,7 @@ export const handleChatService = async (userMessage, UID) => {
             error.code === "ECONNRESET" ||
             error.code === "ETIMEDOUT"
         ) {
-            logger.error(
-                `[AI Error] Lỗi ${errorStatus || "mạng"} (Quá tải yêu cầu || Mất kết nối). YÊU CẦU THỬ LẠI.`
-            );
-            // NÉM LỖI này ra để Worker (BullMQ) bắt được và retry
+            logger.error(`[AI Error] Lỗi ${errorStatus || "mạng"} (Quá tải yêu cầu || Mất kết nối). YÊU CẦU THỬ LẠI.`);
             throw new Error(
                 `Lỗi ${errorStatus || "mạng"} (Quá tải yêu cầu || Mất kết nối). Sẽ thử lại tiến trình công việc ...`
             );
@@ -96,6 +120,6 @@ export const handleChatService = async (userMessage, UID) => {
 
         // Các lỗi khác (400, 401...) là lỗi "cứng", không retry, trả về mặc định
         logger.warn(`[AI Error] Lỗi không retry (${errorStatus}), trả về message mặc định`);
-        return "Cảm ơn anh/chị đã tin tưởng liên hệ đến Lâm Quang Đại, anh chị vui lòng để lại số điện thoại để em chuyển tiếp đến bộ phận kinh doanh hỗ trợ mình thêm ạ";
+        return "Dạ, anh/chị vui lòng đợi chút để em kết nối lại với bộ phận kinh doanh hỗ trợ mình ạ.";
     }
 };

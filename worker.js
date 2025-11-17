@@ -17,7 +17,6 @@ logger.info("[Worker] Đang khởi động và lắng nghe hàng đợi 'zalo-ch
 const worker = new Worker(
     "zalo-chat",
     async (job) => {
-        // 1. Lấy data từ job
         const { UID, isDebounced } = job.data;
         const redisClient = await worker.client;
         const pendingMessageKey = `pending-msgs-${UID}`;
@@ -110,7 +109,8 @@ const worker = new Worker(
 
             logger.info(`[Worker] Đang gọi AI phản hồi cho phiên trò chuyện [${UID}]  [${messageFromUser}]`); // 4. Xử lý chat với AI (dùng tin đã gộp)
 
-            const messageFromAI = await handleChatService(messageFromUser, UID); // 5. Lưu phản hồi AI
+            // Truyền accessToken vào handleChatService để có thể gửi thông báo cho ADMIN
+            const messageFromAI = await handleChatService(messageFromUser, UID, accessToken); // 5. Lưu phản hồi AI
 
             conversationService.addMessage(UID, "model", messageFromAI);
             logger.info(`[Worker] AI trả lời [${UID}]: ${messageFromAI.substring(0, 50)}...`); // 6. Gửi tin nhắn trả lời "thật" cho Zalo
