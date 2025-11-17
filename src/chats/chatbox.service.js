@@ -57,32 +57,45 @@ export const handleChatService = async (userMessage, UID) => {
             return "Cảm ơn anh/chị đã tin tưởng liên hệ đến Lâm Quang Đại, anh chị vui lòng để lại số điện thoại để em chuyển tiếp đến bộ phận kinh doanh hỗ trợ mình thêm ạ";
         }
     } catch (error) {
+        // LOG TOÀN BỘ ERROR OBJECT ĐỂ DEBUG
         logger.error(
             `[AI Error] Lỗi khi gọi Gemini cho user ${UID}:`,
-            error.message
+            {
+                message: error.message,
+                status: error.status,
+                code: error.code,
+                response: error.response?.data || error.response,
+                stack: error.stack,
+                fullError: JSON.stringify(error, Object.getOwnPropertyNames(error))
+            }
         );
 
         // KIỂM TRA LỖI 503 (HOẶC LỖI MẠNG)
         const errorMessage = error.message || "";
+        const errorStatus = error.status || error.response?.status || error.code;
+        
         if (
+            errorStatus === 503 ||
+            errorStatus === "503" ||
             errorMessage.includes("503") ||
             errorMessage.includes("overloaded") ||
-            errorMessage.includes("ECONNRESET")
+            errorMessage.includes("ECONNRESET") ||
+            errorMessage.includes("ETIMEDOUT") ||
+            errorMessage.includes("ENOTFOUND") ||
+            error.code === "ECONNRESET" ||
+            error.code === "ETIMEDOUT"
         ) {
             logger.error(
-                `[AI Error] Lỗi ${
-                    error.status || "mạng"
-                } (Quá tải yêu cầu || Mất kết nối). YÊU CẦU THỬ LẠI.`
+                `[AI Error] Lỗi ${errorStatus || "mạng"} (Quá tải yêu cầu || Mất kết nối). YÊU CẦU THỬ LẠI.`
             );
             // NÉM LỖI này ra để Worker (BullMQ) bắt được và retry
             throw new Error(
-                `Lỗi ${
-                    error.status || "mạng"
-                } (Quá tải yêu cầu || Mất kết nối). Sẽ thử lại tiến trình công việc ...`
+                `Lỗi ${errorStatus || "mạng"} (Quá tải yêu cầu || Mất kết nối). Sẽ thử lại tiến trình công việc ...`
             );
         }
 
         // Các lỗi khác (400, 401...) là lỗi "cứng", không retry, trả về mặc định
+        logger.warn(`[AI Error] Lỗi không retry (${errorStatus}), trả về message mặc định`);
         return "Cảm ơn anh/chị đã tin tưởng liên hệ đến Lâm Quang Đại, anh chị vui lòng để lại số điện thoại để em chuyển tiếp đến bộ phận kinh doanh hỗ trợ mình thêm ạ";
     }
 };
