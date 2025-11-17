@@ -2,14 +2,8 @@ import { Worker } from "bullmq";
 import logger from "./src/utils/logger.js";
 import conversationService from "./src/utils/conversation.js";
 import { handleChatService } from "./src/chats/chatbox.service.js";
-import {
-    getValidAccessToken,
-    sendZaloMessage,
-} from "./src/chats/zalo.service.js";
-import {
-    analyzeUserMessageService,
-    informationForwardingSynthesisService,
-} from "./src/chats/analyze.service.js";
+import { getValidAccessToken, sendZaloMessage } from "./src/chats/zalo.service.js";
+import { analyzeUserMessageService, informationForwardingSynthesisService } from "./src/chats/analyze.service.js";
 import { appendJsonToSheet } from "./src/chats/googleSheet.js";
 
 const connection = {
@@ -29,6 +23,8 @@ const worker = new Worker(
         const pendingMessageKey = `pending-msgs-${UID}`;
         let messageFromUser; // Biến này sẽ chứa tin nhắn cuối cùng (đã gộp)
 
+        console.log(UID, isDebounced);
+
         if (isDebounced) {
             // 3. Lấy TẤT CẢ tin nhắn đang chờ
             const messages = await redisClient.lrange(pendingMessageKey, 0, -1);
@@ -44,9 +40,7 @@ const worker = new Worker(
             messageFromUser = messages.join(", ");
         } else {
             // Trường hợp job cũ không có cờ "isDebounced"
-            logger.warn(
-                `[Worker] Job ${job.id} cho UID ${UID} không có cờ 'isDebounced'. Xử lý như job thường.`
-            );
+            logger.warn(`[Worker] Job ${job.id} cho UID ${UID} không có cờ 'isDebounced'. Xử lý như job thường.`);
             messageFromUser = job.data.messageFromUser;
         }
 
@@ -57,9 +51,7 @@ const worker = new Worker(
             logger.error(`Không nhận được accessToken`);
         }
 
-        logger.info(
-            `[Worker] Bắt đầu xử lý phiên trò chuyện [${job.id}] cho ${UID} với nội dung: ${messageFromUser}`
-        );
+        logger.info(`[Worker] Bắt đầu xử lý phiên trò chuyện [${job.id}] cho ${UID} với nội dung: ${messageFromUser}`);
 
         try {
             // 1. Lưu tin nhắn (đã gộp)
@@ -72,40 +64,22 @@ const worker = new Worker(
                     UID,
                     accessToken
                 );
-                const analyzeJSON = analyzeResult
-                    .replace("```json", "")
-                    .replace("```", "")
-                    .trim();
+                const analyzeJSON = analyzeResult.replace("```json", "").replace("```", "").trim();
                 jsonData = JSON.parse(analyzeJSON);
             } catch (analyzeError) {
-                logger.error(
-                    `[Worker] Lỗi khi PHÂN TÍCH cho UID ${UID}:`,
-                    analyzeError.message
-                );
+                logger.error(`[Worker] Lỗi khi PHÂN TÍCH cho UID ${UID}:`, analyzeError.message);
                 throw analyzeError;
             }
 
             if (jsonData && jsonData.soDienThoai && jsonData.nhuCau) {
-                const previouslySentPhone =
-                    conversationService.getSentLeadPhone(UID);
-                if (
-                    previouslySentPhone &&
-                    previouslySentPhone === jsonData.soDienThoai
-                ) {
-                    logger.info(
-                        `[Worker] Đã gửi Lead cho UID ${UID} rồi. Bỏ qua...`
-                    );
+                const previouslySentPhone = conversationService.getSentLeadPhone(UID);
+                if (previouslySentPhone && previouslySentPhone === jsonData.soDienThoai) {
+                    logger.info(`[Worker] Đã gửi Lead cho UID ${UID} rồi. Bỏ qua...`);
                 } else {
-                    logger.info(
-                        `[Worker] Gửi Lead cho UID ${UID}. SĐT mới: ${jsonData.soDienThoai}`
-                    );
-                    const dataCustomer = `- Nhu cầu: ${
-                        jsonData.nhuCau
-                    }\n- Tên zalo khách hàng: ${
+                    logger.info(`[Worker] Gửi Lead cho UID ${UID}. SĐT mới: ${jsonData.soDienThoai}`);
+                    const dataCustomer = `- Nhu cầu: ${jsonData.nhuCau}\n- Tên zalo khách hàng: ${
                         jsonData.tenKhachHang || "Anh/chị"
-                    }\n- Số điện thoại: ${
-                        jsonData.soDienThoai
-                    }\n- Mức độ quan tâm: ${
+                    }\n- Số điện thoại: ${jsonData.soDienThoai}\n- Mức độ quan tâm: ${
                         jsonData.mucDoQuanTam
                     }\n📞Vui lòng phân bổ liên hệ lại khách hàng ngay!`;
 
@@ -125,41 +99,25 @@ const worker = new Worker(
                             accessToken,
                             jsonData.soDienThoai
                         );
-                        logger.info(
-                            `[Worker] Đã gửi thông tin Lead thành công cho UID: ${UID}`
-                        );
+                        logger.info(`[Worker] Đã gửi thông tin Lead thành công cho UID: ${UID}`);
                     } catch (leadError) {
-                        logger.error(
-                            `[Worker] Lỗi khi GỬI LEAD cho UID ${UID}:`,
-                            leadError.message
-                        );
+                        logger.error(`[Worker] Lỗi khi GỬI LEAD cho UID ${UID}:`, leadError.message);
                     }
                 }
             } else {
-                logger.warn(
-                    `[Worker] Chưa đủ thông tin Lead hoặc lỗi phân tích cho UID: ${UID}`
-                );
+                logger.warn(`[Worker] Chưa đủ thông tin Lead hoặc lỗi phân tích cho UID: ${UID}`);
             }
 
-            logger.info(
-                `[Worker] Đang gọi AI phản hồi cho phiên trò chuyện [${UID}]  [${messageFromUser}]`
-            ); // 4. Xử lý chat với AI (dùng tin đã gộp)
+            logger.info(`[Worker] Đang gọi AI phản hồi cho phiên trò chuyện [${UID}]  [${messageFromUser}]`); // 4. Xử lý chat với AI (dùng tin đã gộp)
 
             const messageFromAI = await handleChatService(messageFromUser, UID); // 5. Lưu phản hồi AI
 
             conversationService.addMessage(UID, "model", messageFromAI);
-            logger.info(
-                `[Worker] AI trả lời [${UID}]: ${messageFromAI.substring(
-                    0,
-                    50
-                )}...`
-            ); // 6. Gửi tin nhắn trả lời "thật" cho Zalo
+            logger.info(`[Worker] AI trả lời [${UID}]: ${messageFromAI.substring(0, 50)}...`); // 6. Gửi tin nhắn trả lời "thật" cho Zalo
 
             await sendZaloMessage(UID, messageFromAI, accessToken);
 
-            logger.info(
-                `[Worker] Phiên trò chuyện [${job.id}] đã xử lý xong cho [${UID}]`
-            );
+            logger.info(`[Worker] Phiên trò chuyện [${job.id}] đã xử lý xong cho [${UID}]`);
             // 4. Xóa key đó đi
             await redisClient.del(pendingMessageKey);
         } catch (error) {
@@ -179,7 +137,5 @@ worker.on("completed", (job) => {
 });
 
 worker.on("failed", (job, err) => {
-    logger.error(
-        `[Worker] Job ${job.id} thất bại sau ${job.attemptsMade} lần thử: ${err.message}`
-    );
+    logger.error(`[Worker] Job ${job.id} thất bại sau ${job.attemptsMade} lần thử: ${err.message}`);
 });
