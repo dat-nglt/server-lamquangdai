@@ -22,49 +22,65 @@ export const handleZaloWebhook = async (req, res) => {
         }
 
         // --- [LOGIC DEBOUNCE MỚI] ---
+        logger.info(`[Webhook] Bắt đầu xử lý Redis/Queue cho UID: ${UID}`);
 
-        // 1. Lấy Redis client từ queue (BullMQ cung cấp sẵn)
-        const redisClient = await zaloChatQueue.client;
+        try {
+            // 1. Lấy Redis client từ queue (BullMQ cung cấp sẵn)
+            const redisClient = await zaloChatQueue.client;
+            logger.info(`[Webhook] Đã kết nối Redis client thành công`);
 
-        // 2. Định nghĩa key/jobId cho người dùng này
-        const pendingMessageKey = `pending-msgs-${UID}`;
-        const debounceJobId = `debounce-job-${UID}`;
+            // 2. Định nghĩa key/jobId cho người dùng này
+            const pendingMessageKey = `pending-msgs-${UID}`;
+            const debounceJobId = `debounce-job-${UID}`;
 
-        // 3. Lưu tin nhắn này vào danh sách chờ trong Redis
-        // Chúng ta dùng RPUSH để thêm vào cuối danh sách
-        await redisClient.rpush(pendingMessageKey, messageFromUser);
-        // Tự động xóa key này sau 1 giờ nếu worker có lỗi, tránh rác Redis
-        await redisClient.expire(pendingMessageKey, 3600);
+            // 3. Lưu tin nhắn này vào danh sách chờ trong Redis
+            await redisClient.rpush(pendingMessageKey, messageFromUser);
+            await redisClient.expire(pendingMessageKey, 3600);
+            logger.info(`[Webhook] Đã lưu message vào Redis key: ${pendingMessageKey}`);
 
-        // 4. Tìm job cũ (nếu có) đang trong hàng đợi "delayed"
-        const existingJob = await zaloChatQueue.getJob(debounceJobId);
-        if (existingJob && (await existingJob.isDelayed())) {
-            // Nếu tìm thấy, xóa nó đi. Chúng ta sẽ tạo một job mới (reset timer)
-            await existingJob.remove();
-        } // 5. Thêm job "GỘP" vào hàng đợi với 10s delay
-
-        // Lưu ý: data chỉ cần UID. Worker sẽ tự lấy message từ Redis
-        await zaloChatQueue.add(
-            "process-message",
-            {
-                UID: UID,
-                isDebounced: true, // Thêm cờ này để worker biết cách xử lý
-            },
-            {
-                jobId: debounceJobId, // ID cố định cho user
-                delay: DEBOUNCE_DELAY, // Luôn đợi 20s
+            // 4. Tìm job cũ (nếu có) đang trong hàng đợi "delayed"
+            const existingJob = await zaloChatQueue.getJob(debounceJobId);
+            if (existingJob && (await existingJob.isDelayed())) {
+                await existingJob.remove();
+                logger.info(`[Webhook] Đã xóa job cũ: ${debounceJobId}`);
             }
-        );
 
-        logger.info(
-            `[Webhook] Đã tiếp nhận và tổng hợp tin nhắn cho UID: ${UID} - ${messageFromUser}. Sẽ xử lý sau ${
-                DEBOUNCE_DELAY / 1000
-            }s nếu không có thêm yêu cầu.`
-        );
+            // 5. Thêm job "GỘP" vào hàng đợi với delay
+            const newJob = await zaloChatQueue.add(
+                "process-message",
+                {
+                    UID: UID,
+                    isDebounced: true,
+                },
+                {
+                    jobId: debounceJobId,
+                    delay: DEBOUNCE_DELAY,
+                }
+            );
 
-        res.status(200).send("OK");
+            logger.info(
+                `[Webhook] ✅ Đã tạo job thành công ID: ${newJob.id} cho UID: ${UID} - ${messageFromUser}. Sẽ xử lý sau ${
+                    DEBOUNCE_DELAY / 1000
+                }s nếu không có thêm yêu cầu.`
+            );
+
+            // Gửi response sau khi tất cả xử lý thành công
+            res.status(200).send("OK");
+        } catch (queueError) {
+            logger.error("[Webhook] Lỗi xử lý Redis/Queue:", {
+                error: queueError.message,
+                stack: queueError.stack,
+                UID: UID,
+                message: messageFromUser
+            });
+            
+            // Vẫn gửi response OK để Zalo không retry
+            res.status(200).send("OK (Queue Error)");
+        }
     } catch (error) {
         logger.error("[Webhook Controller] Lỗi nghiêm trọng:", error);
-        res.status(500).send("Internal Server Error");
+        if (!res.headersSent) {
+            res.status(500).send("Internal Server Error");
+        }
     }
 };
