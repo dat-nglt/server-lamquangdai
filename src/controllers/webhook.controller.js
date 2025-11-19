@@ -1,7 +1,7 @@
 import logger from "../utils/logger.js";
 import { zaloChatQueue } from "../chats/queue.service.js";
 
-const DEBOUNCE_DELAY = 15000; // 15 giây
+const DEBOUNCE_DELAY = 20000; // 20 giây
 // const ALLOWED_UID = "7365147034329534561"; // UID được phép gửi tin nhắn
 
 export const handleZaloWebhook = async (req, res) => {
