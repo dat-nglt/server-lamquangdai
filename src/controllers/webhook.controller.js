@@ -2,7 +2,7 @@ import logger from "../utils/logger.js";
 import { zaloChatQueue } from "../chats/queue.service.js";
 
 const DEBOUNCE_DELAY = 15000; // 15 giây
-const ALLOWED_UID = "7365147034329534561"; // UID được phép gửi tin nhắn
+// const ALLOWED_UID = "7365147034329534561"; // UID được phép gửi tin nhắn
 
 export const handleZaloWebhook = async (req, res) => {
     try {
@@ -12,13 +12,16 @@ export const handleZaloWebhook = async (req, res) => {
         const attachments = req.body?.message?.attachments || []; // Lấy attachment (hình ảnh, file, etc.)
 
         // Kiểm tra xem UID có được phép không
-        if (UID !== ALLOWED_UID) {
-            logger.warn(`[Webhook] Bỏ qua tin nhắn từ UID không được phép [${UID}]`);
-            return res.status(200).send("OK (UID not allowed)");
-        }
+        // if (UID !== ALLOWED_UID) {
+        //     logger.warn(`[Webhook] Bỏ qua tin nhắn từ UID không được phép [${UID}]`);
+        //     return res.status(200).send("OK (UID not allowed)");
+        // }
 
         // Kiểm tra tính hợp lệ của webhook - hỗ trợ text, image, và file
-        if (!UID || (eventName !== "user_send_text" && eventName !== "user_send_image" && eventName !== "user_send_file")) {
+        if (
+            !UID ||
+            (eventName !== "user_send_text" && eventName !== "user_send_image" && eventName !== "user_send_file")
+        ) {
             console.log(eventName);
             logger.warn("Webhook không hợp lệ (thiếu UID hoặc event_name không đúng)");
             return res.status(400).send("Invalid webhook data");
@@ -26,11 +29,11 @@ export const handleZaloWebhook = async (req, res) => {
 
         // Xây dựng message từ text và/hoặc attachments
         let messageFromUser = messageText || "";
-        
+
         if (eventName === "user_send_image" && attachments.length > 0) {
             // Xử lý hình ảnh
             const imageInfo = attachments
-                .filter(att => att.type === "image")
+                .filter((att) => att.type === "image")
                 .map((att, index) => {
                     const url = att.payload?.url;
                     return url ? `[Hình ảnh ${index + 1}]: ${url}` : null;
@@ -39,16 +42,14 @@ export const handleZaloWebhook = async (req, res) => {
                 .join("\n");
 
             if (imageInfo) {
-                messageFromUser = messageFromUser
-                    ? `${messageFromUser}\n\n${imageInfo}`
-                    : imageInfo;
+                messageFromUser = messageFromUser ? `${messageFromUser}\n\n${imageInfo}` : imageInfo;
             }
         }
 
         if (eventName === "user_send_file" && attachments.length > 0) {
             // Xử lý file
             const fileInfo = attachments
-                .filter(att => att.type === "file")
+                .filter((att) => att.type === "file")
                 .map((att, index) => {
                     const url = att.payload?.url;
                     const fileName = att.payload?.name || `File ${index + 1}`;
@@ -59,9 +60,7 @@ export const handleZaloWebhook = async (req, res) => {
                 .join("\n");
 
             if (fileInfo) {
-                messageFromUser = messageFromUser
-                    ? `${messageFromUser}\n\n${fileInfo}`
-                    : fileInfo;
+                messageFromUser = messageFromUser ? `${messageFromUser}\n\n${fileInfo}` : fileInfo;
             }
         }
 
@@ -109,9 +108,7 @@ export const handleZaloWebhook = async (req, res) => {
             );
 
             logger.info(
-                `[Webhook] Đã tạo tiến trình công việc thành công ID: ${
-                    newJob.id
-                } cho UID: ${UID}. Sẽ xử lý sau ${
+                `[Webhook] Đã tạo tiến trình công việc thành công ID: ${newJob.id} cho UID: ${UID}. Sẽ xử lý sau ${
                     DEBOUNCE_DELAY / 1000
                 }s nếu không có thêm yêu cầu.`
             );
