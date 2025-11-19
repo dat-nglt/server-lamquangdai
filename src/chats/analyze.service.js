@@ -3,7 +3,7 @@ import { SYSTEM_INSTRUCTION_ANALYZE } from "../promts/promt.v1.analyze.js";
 import { extractPhoneNumber } from "../utils/extractPhoneNumber.js";
 import conversationService from "../utils/conversation.js";
 import logger from "../utils/logger.js";
-import { extractDisplayNameFromMessage, sendZaloMessage } from "./zalo.service.js";
+import { extractDisplayNameFromMessage, sendZaloMessage, sendZaloImage, sendZaloFile } from "./zalo.service.js";
 import { storeCustomerImage, storeCustomerFile, getAllCustomerMedia, clearCustomerMedia } from "../utils/imageCache.js";
 
 const API_KEY = process.env.GEMENI_API_KEY;
@@ -138,20 +138,10 @@ export const informationForwardingSynthesisService = async (UID, dataCustomer, a
                     for (const media of allCustomerMedia) {
                         try {
                             if (media.type === "image") {
-                                await sendZaloMessage(
-                                    leadUID,
-                                    null,
-                                    accessToken,
-                                    { media_type: "image", url: media.url }
-                                );
+                                await sendZaloImage(leadUID, media.url, accessToken);
                                 logger.info(`Đã gửi hình ảnh đến Lead [${leadUID}]: ${media.url}`);
                             } else if (media.type === "file") {
-                                await sendZaloMessage(
-                                    leadUID,
-                                    `📎 File: ${media.name} (${media.size} bytes)`,
-                                    accessToken,
-                                    { media_type: "file", url: media.url }
-                                );
+                                await sendZaloFile(leadUID, media.url, media.name, accessToken);
                                 logger.info(`Đã gửi file đến Lead [${leadUID}]: ${media.name}`);
                             }
                         } catch (mediaError) {
