@@ -1,4 +1,4 @@
-import logger from "../utils/logger.js";
+import logger from "../../utils/logger.js";
 import { zaloChatQueue } from "../chats/queue.service.js";
 
 const DEBOUNCE_DELAY = 15000; // 15 giây
@@ -10,19 +10,18 @@ export const handleZaloWebhook = async (req, res) => {
         const eventName = req.body?.event_name; // Lấy loại sự kiện từ webhook
 
         if (!UID || !messageFromUser || eventName !== "user_send_text") {
+            console.log(eventName);
+
             // Kiểm tra tính hợp lệ của webhook
             logger.warn("Webhook không hợp lệ (thiếu UID hoặc message hoặc event_name không đúng)");
             return res.status(400).send("Invalid webhook data");
         }
 
-        // Trial UID
-        // const acceptUIDs = ["7365147034329534561"];
-        // if (!acceptUIDs.includes(UID)) {
-        //     logger.warn(
-        //         `[Webhook] Hệ thống đang ở giai đoạn thử nghiệp - Bỏ qua tin nhắn từ [${UID} - ${messageFromUser}]`
-        //     );
-        //     return res.status(200).send("OK (Test user ignored)");
-        // }
+        const unAcceptUIDs = ["7888412520328172590", "1591235795556991810", "7365147034329534561"];
+        if (!unAcceptUIDs.includes(UID)) {
+            logger.warn(`[Webhook] Bỏ qua tin nhắn từ [${UID} - ${messageFromUser}]`);
+            return res.status(200).send("OK (Test user ignored)");
+        }
 
         // --- [LOGIC DEBOUNCE MỚI] ---
         logger.info(`[Webhook] Bắt đầu xử lý Redis/Queue cho UID: ${UID}`);
