@@ -104,77 +104,56 @@ export const informationForwardingSynthesisService = async (
     UID,
     dataCustomer,
     accessToken,
-    phoneNumberSent
+    phoneNumberSent,
+    leadUID // Thêm tham số leadUID được truyền vào
 ) => {
-    // Danh sách UID của các Lead/Quản lý
-    const LEAD_UIDS = [
-        // // "5584155984018191145",
-        // "1591235795556991810",
-        "7365147034329534561",
-    ];
-
     // Lấy danh sách hình ảnh của khách hàng
     const customerImages = getCustomerImages(UID);
 
     try {
-        // Gửi tin nhắn đồng thời cho tất cả Lead UIDs
-        const sendPromises = LEAD_UIDS.map(async (leadUID) => {
-            try {
-                // Gửi tin nhắn chính với thông tin khách hàng
-                await sendZaloMessage(leadUID, dataCustomer, accessToken);
-                logger.info(`Đã gửi thông tin khách hàng đến Lead [${leadUID}]`);
+        // Gửi tin nhắn chính với thông tin khách hàng
+        await sendZaloMessage(leadUID, dataCustomer, accessToken);
+        logger.info(`Đã gửi thông tin khách hàng đến Lead [${leadUID}]`);
 
-                // Nếu có hình ảnh, gửi kèm từng hình ảnh
-                if (customerImages.length > 0) {
-                    for (const imageUrl of customerImages) {
-                        try {
-                            await sendZaloMessage(
-                                leadUID,
-                                null,
-                                accessToken,
-                                { type: "image", url: imageUrl }
-                            );
-                            logger.info(`Đã gửi hình ảnh đến Lead [${leadUID}]: ${imageUrl}`);
-                        } catch (imageError) {
-                            logger.error(
-                                `Lỗi khi gửi hình ảnh đến Lead [${leadUID}]:`,
-                                imageError.message
-                            );
-                        }
-                    }
+        // Nếu có hình ảnh, gửi kèm từng hình ảnh
+        if (customerImages.length > 0) {
+            for (const imageUrl of customerImages) {
+                try {
+                    await sendZaloMessage(
+                        leadUID,
+                        null,
+                        accessToken,
+                        { type: "image", url: imageUrl }
+                    );
+                    logger.info(`Đã gửi hình ảnh đến Lead [${leadUID}]: ${imageUrl}`);
+                } catch (imageError) {
+                    logger.error(
+                        `Lỗi khi gửi hình ảnh đến Lead [${leadUID}]:`,
+                        imageError.message
+                    );
+                    // Tiếp tục gửi các ảnh khác ngay cả khi có lỗi
                 }
-
-                return { leadUID, success: true };
-            } catch (error) {
-                logger.error(`Lỗi khi gửi thông tin đến Lead [${leadUID}]:`, error.message);
-                return { leadUID, success: false, error: error.message };
             }
-        });
-
-        const results = await Promise.all(sendPromises);
-
-        // Kiểm tra kết quả gửi
-        const successCount = results.filter((result) => result.success).length;
-        const failCount = results.length - successCount;
-
-        logger.info(`Gửi thông tin khách hàng: ${successCount} thành công, ${failCount} thất bại`);
-
-        if (successCount > 0) {
-            // Đánh dấu SĐT này đã được gửi thành công nếu có ít nhất 1 Lead nhận được
-            conversationService.setLeadSent(UID, phoneNumberSent);
-
-            // Xóa cache hình ảnh sau khi gửi thành công
-            clearCustomerImages(UID);
         }
 
-        if (failCount === results.length) {
-            // Nếu tất cả đều thất bại
-            throw new Error("Không thể gửi thông tin đến bất kỳ Lead nào");
-        }
+        // Đánh dấu SĐT này đã được gửi thành công
+        conversationService.setLeadSent(UID, phoneNumberSent);
 
-        return results;
+        // Xóa cache hình ảnh sau khi gửi thành công
+        clearCustomerImages(UID);
+
+        logger.info(`Gửi thông tin khách hàng thành công đến Lead [${leadUID}]`);
+        return { leadUID, success: true };
     } catch (error) {
-        logger.error(`Lỗi nghiêm trọng khi gửi thông tin Lead:`, error.message);
+        logger.error(
+            `Lỗi nghiêm trọng khi gửi thông tin đến Lead [${leadUID}]:`,
+            JSON.stringify({
+                error: error.message,
+                UID: UID,
+                phoneNumber: phoneNumberSent,
+                leadUID: leadUID,
+            }, null, 2)
+        );
         throw new Error("Failed to send lead info");
     }
 };
