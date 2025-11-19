@@ -174,8 +174,7 @@ export const sendZaloFile = async (UID, fileUrl, fileName, accessToken) => {
         }
     } catch (error) {
         logger.error(
-            `[Zalo API] Zalo API Error (sendZaloFile to ${UID}):`,
-            error.response?.data?.message || error.message
+            `[Zalo API] Zalo API Error (sendZaloFile to ${UID}) ${error.response?.data?.message || error.message}`
         );
         throw new Error(error.response?.data?.message || error.message || "Failed to send Zalo file");
     }
