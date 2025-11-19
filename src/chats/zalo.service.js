@@ -39,19 +39,11 @@ export const sendZaloMessage = async (UID, text, accessToken, mediaAttachment = 
         payload.message.text = text;
     }
 
-    // Thêm attachment hình ảnh nếu có
+    // Thêm attachment hình ảnh nếu có - theo format của Zalo API
     if (mediaAttachment && mediaAttachment.type === "image") {
         payload.message.attachment = {
-            type: "template",
-            payload: {
-                template_type: "media",
-                elements: [
-                    {
-                        media_type: "image",
-                        url: mediaAttachment.url,
-                    },
-                ],
-            },
+            type: "image",
+            media_url: mediaAttachment.url,
         };
     }
 
@@ -63,23 +55,28 @@ export const sendZaloMessage = async (UID, text, accessToken, mediaAttachment = 
     try {
         const response = await axios.post(url, payload, { headers });
         const responseMessage = response.data.message;
+        
         if (responseMessage.toLowerCase() === "success") {
             logger.info(
                 `[Zalo API] Đã gửi phản hồi thành công đến [UID: ${UID}]${
                     mediaAttachment ? " (có attachment hình ảnh)" : ""
                 }`
             );
-            return;
+            return response.data;
         } else {
-            logger.error(`[Zalo API] Đã có lỗi xảy ra trong quá trình phản hồi đến [${UID}`);
-            return;
+            // Ném lỗi nếu phản hồi không phải "success"
+            logger.error(
+                `[Zalo API] Phản hồi không thành công từ Zalo [UID: ${UID}]:`,
+                JSON.stringify(response.data, null, 2)
+            );
+            throw new Error(`Zalo API returned: ${responseMessage}`);
         }
     } catch (error) {
         logger.error(
             `[Zalo API] Zalo API Error (sendZaloMessage to ${UID}):`,
-            error.response?.data?.message
+            error.response?.data?.message || error.message
         );
-        throw new Error(error.response?.data?.message || "Failed to send Zalo message");
+        throw new Error(error.response?.data?.message || error.message || "Failed to send Zalo message");
     }
 };
 
