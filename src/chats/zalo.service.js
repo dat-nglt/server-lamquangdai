@@ -17,6 +17,8 @@ const ZALO_AUTH_URL = process.env.ZALO_AUTH_URL;
  * @param {object} mediaAttachment - Attachment hình ảnh (optional)
  */
 export const sendZaloMessage = async (UID, text, accessToken, mediaAttachment = null) => {
+    console.log(1);
+    
     if (!UID) {
         logger.warn("[Zalo API] Thiếu UID để gửi");
         return;
@@ -46,6 +48,7 @@ export const sendZaloMessage = async (UID, text, accessToken, mediaAttachment = 
             media_url: mediaAttachment.url,
         };
     }
+    console.log(2);
 
     const headers = {
         access_token: accessToken,
@@ -55,7 +58,7 @@ export const sendZaloMessage = async (UID, text, accessToken, mediaAttachment = 
     try {
         const response = await axios.post(url, payload, { headers });
         const responseMessage = response.data.message;
-        
+
         if (responseMessage.toLowerCase() === "success") {
             logger.info(
                 `[Zalo API] Đã gửi phản hồi thành công đến [UID: ${UID}]${
@@ -137,7 +140,8 @@ export const getValidAccessToken = async () => {
     logger.warn(`[Zalo Token] Thời điểm hiện tại: ${new Date().toLocaleString()}`);
     logger.warn(`[Zalo Token] Thời điểm hết hạn:  ${new Date(tokenData.access_token_expires_at).toLocaleString()}`);
 
-    if (expireTime - now > BUFFER_TIME) { // Chưa đến thời điểm cần refresh
+    if (expireTime - now > BUFFER_TIME) {
+        // Chưa đến thời điểm cần refresh
         return tokenData.access_token;
     }
 

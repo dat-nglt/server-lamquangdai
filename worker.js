@@ -100,8 +100,7 @@ const worker = new Worker(
                             UID,
                             dataCustomer,
                             accessToken,
-                            jsonData.soDienThoai,
-                            "7365147034329534561" // Truyền leadUID cụ thể
+                            jsonData.soDienThoai
                         );
                         logger.info(`[Worker] Đã gửi thông tin Lead thành công cho UID: ${UID}`);
                     } catch (leadError) {
