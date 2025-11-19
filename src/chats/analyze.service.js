@@ -160,11 +160,11 @@ export const informationForwardingSynthesisService = async (UID, dataCustomer, a
                                     logger.warn(
                                         `[Lead Service] Không thể upload file ${media.name}: ${uploadError.message}`
                                     );
-                                    
+
                                     try {
                                         await sendZaloMessage(
                                             leadUID,
-                                            `ℹ️ File "${media.name}" không thể được xử lý. Khách hàng đã gửi kèm file này.`,
+                                            `[CẦN XỬ LÝ 🆘] Khách hàng đã gửi file "${media.name}" nhưng định dạng không được hỗ trợ để tự động xử lý ➡️ Vui lòng truy cập trang Quản lý OA để tải xuống file này`,
                                             accessToken
                                         );
                                     } catch (notifyError) {
