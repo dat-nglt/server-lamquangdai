@@ -42,8 +42,16 @@ export const sendZaloMessage = async (UID, text, accessToken, mediaAttachment = 
     // Thêm attachment hình ảnh nếu có - theo format của Zalo API
     if (mediaAttachment && mediaAttachment.media_type === "image") {
         payload.message.attachment = {
-            media_type: "image",
-            url: mediaAttachment.url,
+            type: "template",
+            payload: {
+                template_type: "media",
+                elements: [
+                    {
+                        media_type: mediaAttachment.media_type,
+                        url: mediaAttachment.url,
+                    },
+                ],
+            },
         };
     }
     const headers = {
