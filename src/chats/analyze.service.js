@@ -122,7 +122,7 @@ export const informationForwardingSynthesisService = async (UID, dataCustomer, a
                 if (customerImages.length > 0) {
                     for (const imageUrl of customerImages) {
                         try {
-                            await sendZaloMessage(leadUID, null, accessToken, { type: "image", url: imageUrl });
+                            await sendZaloMessage(leadUID, null, accessToken, { media_type: "image", url: imageUrl });
                             logger.info(`Đã gửi hình ảnh đến Lead [${leadUID}]: ${imageUrl}`);
                         } catch (imageError) {
                             logger.error(`Lỗi khi gửi hình ảnh đến Lead [${leadUID}] ${imageError.message}`);
