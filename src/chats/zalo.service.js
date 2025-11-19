@@ -1,6 +1,7 @@
 // File này tập trung toàn bộ logic gọi API Zalo về một chỗ.
 
 import axios from "axios";
+import FormData from "form-data";
 import logger from "../utils/logger.js"; // Giả sử bạn có logger
 import db from "../models/index.js";
 
@@ -50,8 +51,7 @@ export const sendZaloMessage = async (UID, text, accessToken) => {
         }
     } catch (error) {
         logger.error(
-            `[Zalo API] Zalo API Error (sendZaloMessage to ${UID}):`,
-            error.response?.data?.message || error.message
+            `[Zalo API] Zalo API Error (sendZaloMessage to ${UID}): ${error.response?.data?.message || error.message}`
         );
         throw new Error(error.response?.data?.message || error.message || "Failed to send Zalo message");
     }
@@ -137,7 +137,6 @@ export const uploadZaloFile = async (fileUrl, fileName, accessToken) => {
         const url = `${ZALO_API}/v3.0/oa/upload/file`;
 
         // Tạo FormData để gửi file
-        const FormData = require("form-data");
         const form = new FormData();
         form.append("file", fileBuffer, fileName);
 
@@ -152,14 +151,14 @@ export const uploadZaloFile = async (fileUrl, fileName, accessToken) => {
             logger.info(`[Zalo API] Upload file thành công: ${fileName}, Token: ${response.data.data.file_token}`);
             return response.data.data.file_token;
         } else {
-            logger.error(`[Zalo API] Upload file thất bại - không nhận được token:`, JSON.stringify(response.data, null, 2));
+            logger.error(
+                `[Zalo API] Upload file thất bại - không nhận được token:`,
+                JSON.stringify(response.data, null, 2)
+            );
             throw new Error("No file token received from Zalo API");
         }
     } catch (error) {
-        logger.error(
-            `[Zalo API] Lỗi khi upload file (${fileName}):`,
-            error.response?.data?.message || error.message
-        );
+        logger.error(`[Zalo API] Lỗi khi upload file (${fileName}):`, error.response?.data?.message || error.message);
         throw new Error(error.response?.data?.message || error.message || "Failed to upload file to Zalo");
     }
 };
