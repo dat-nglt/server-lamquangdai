@@ -149,7 +149,9 @@ export const uploadZaloFile = async (fileUrl, fileName, accessToken) => {
         const maxFileSize = 5 * 1024 * 1024; // 5MB
         if (fileBuffer.length > maxFileSize) {
             logger.warn(`[Zalo API] File vượt quá kích thước tối đa (5MB): ${fileName}`);
-            throw new Error(`File size exceeds 5MB limit. Current size: ${(fileBuffer.length / 1024 / 1024).toFixed(2)}MB`);
+            throw new Error(
+                `File size exceeds 5MB limit. Current size: ${(fileBuffer.length / 1024 / 1024).toFixed(2)}MB`
+            );
         }
 
         // Sử dụng V2.0 API endpoint
@@ -176,11 +178,11 @@ export const uploadZaloFile = async (fileUrl, fileName, accessToken) => {
             logger.info(`[Zalo API] Upload file thành công: ${fileName}`);
             return response.data.data.token;
         } else {
-            logger.error(`[Zalo API] Upload file thất bại:`, JSON.stringify(response.data, null, 2));
+            logger.warn(`[Zalo API] Upload file thất bại:`, JSON.stringify(response.data, null, 2));
             throw new Error(`Failed to get file token from Zalo API`);
         }
     } catch (error) {
-        logger.error(`[Zalo API] Lỗi khi upload file (${fileName}):`, error.message);
+        logger.warn(`[Zalo API] Lỗi khi upload file (${fileName}):`, error.message);
         throw error;
     }
 };
