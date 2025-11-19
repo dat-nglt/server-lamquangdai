@@ -2,7 +2,8 @@
 
 import axios from "axios";
 import FormData from "form-data";
-import logger from "../utils/logger.js"; // Giả sử bạn có logger
+import logger from "../utils/logger.js";
+import { ensureSupportedFormat } from "../utils/fileConverter.js";
 import db from "../models/index.js";
 
 const { ZaloTokens } = db;
@@ -119,6 +120,7 @@ export const sendZaloImage = async (UID, imageUrl, accessToken) => {
 /**
  * Hàm upload file lên Zalo và nhận token
  * Lưu ý: Chỉ hỗ trợ file PDF/DOC/DOCX, dung lượng không vượt quá 5MB
+ * Các định dạng khác sẽ được tự động chuyển đổi sang PDF
  * @param {string} fileUrl - URL của file cần upload
  * @param {string} fileName - Tên file
  * @param {string} accessToken - Access token Zalo
@@ -130,24 +132,34 @@ export const uploadZaloFile = async (fileUrl, fileName, accessToken) => {
         throw new Error("Missing file URL or file name");
     }
 
-    // Kiểm tra định dạng file
-    const supportedFormats = [".pdf", ".doc", ".docx"];
-    const fileExtension = fileName.toLowerCase().substring(fileName.lastIndexOf("."));
-    if (!supportedFormats.includes(fileExtension)) {
-        logger.warn(`[Zalo API] File không được hỗ trợ: ${fileName}. Chỉ hỗ trợ PDF/DOC/DOCX`);
-        throw new Error(`Unsupported file format: ${fileExtension}. Only PDF/DOC/DOCX are supported`);
-    }
-
     try {
         // Tải file từ URL
         logger.info(`[Zalo API] Bắt đầu tải file từ URL: ${fileUrl}`);
         const fileResponse = await axios.get(fileUrl, { responseType: "arraybuffer" });
-        const fileBuffer = fileResponse.data;
+        let fileBuffer = fileResponse.data;
+        let finalFileName = fileName;
+
+        // Kiểm tra và chuyển đổi định dạng nếu cần
+        try {
+            const conversionResult = await ensureSupportedFormat(fileBuffer, fileName);
+            fileBuffer = conversionResult.buffer;
+            finalFileName = conversionResult.newFileName;
+
+            if (conversionResult.wasConverted) {
+                logger.info(`[Zalo API] File đã được chuyển đổi từ ${fileName} sang ${finalFileName}`);
+            }
+        } catch (conversionError) {
+            logger.error(`[Zalo API] Lỗi chuyển đổi file:`, conversionError.message);
+            // Nếu chuyển đổi thất bại, vẫn tiếp tục với file gốc (sẽ fail khi upload)
+            throw conversionError;
+        }
 
         // Kiểm tra kích thước file (max 5MB)
         const maxFileSize = 5 * 1024 * 1024; // 5MB
         if (fileBuffer.length > maxFileSize) {
-            logger.warn(`[Zalo API] File vượt quá kích thước tối đa (5MB): ${fileName}`);
+            logger.warn(
+                `[Zalo API] File vượt quá kích thước tối đa (5MB): ${finalFileName}`
+            );
             throw new Error(
                 `File size exceeds 5MB limit. Current size: ${(fileBuffer.length / 1024 / 1024).toFixed(2)}MB`
             );
@@ -158,24 +170,28 @@ export const uploadZaloFile = async (fileUrl, fileName, accessToken) => {
 
         // Tạo FormData để gửi file
         const form = new FormData();
-        form.append("file", fileBuffer, fileName);
+        form.append("file", fileBuffer, finalFileName);
 
         const headers = {
             ...form.getHeaders(),
             access_token: accessToken,
         };
 
-        logger.info(`[Zalo API] Uploading file: ${fileName} (${(fileBuffer.length / 1024).toFixed(2)}KB)`);
+        logger.info(`[Zalo API] Uploading file: ${finalFileName} (${(fileBuffer.length / 1024).toFixed(2)}KB)`);
 
         const response = await axios.post(url, form, { headers });
 
         // Kiểm tra response theo format Zalo V2.0
         if (response.data?.data?.token) {
-            logger.info(`[Zalo API] Upload file thành công: ${fileName}, Token: ${response.data.data.token}`);
+            logger.info(
+                `[Zalo API] Upload file thành công: ${finalFileName}, Token: ${response.data.data.token}`
+            );
             return response.data.data.token;
         } else if (response.data?.error === 0 && response.data?.data?.token) {
             // Alternative response format
-            logger.info(`[Zalo API] Upload file thành công: ${fileName}, Token: ${response.data.data.token}`);
+            logger.info(
+                `[Zalo API] Upload file thành công: ${finalFileName}, Token: ${response.data.data.token}`
+            );
             return response.data.data.token;
         } else {
             logger.error(

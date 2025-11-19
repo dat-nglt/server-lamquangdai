@@ -147,13 +147,37 @@ export const informationForwardingSynthesisService = async (UID, dataCustomer, a
                                 await sendZaloImage(leadUID, media.url, accessToken);
                                 logger.info(`Đã gửi hình ảnh đến Lead [${leadUID}]: ${media.url}`);
                             } else if (media.type === "file") {
-                                // Upload file trước để lấy token
-                                logger.info(`[Lead Service] Đang upload file: ${media.name}`);
-                                const fileToken = await uploadZaloFile(media.url, media.name, accessToken);
+                                try {
+                                    // Upload file trước để lấy token
+                                    logger.info(`[Lead Service] Đang upload file: ${media.name}`);
+                                    const fileToken = await uploadZaloFile(media.url, media.name, accessToken);
 
-                                // Sau đó gửi file sử dụng token
-                                await sendZaloFile(leadUID, fileToken, media.name, accessToken);
-                                logger.info(`Đã gửi file đến Lead [${leadUID}]: ${media.name}`);
+                                    // Sau đó gửi file sử dụng token
+                                    await sendZaloFile(leadUID, fileToken, media.name, accessToken);
+                                    logger.info(`Đã gửi file đến Lead [${leadUID}]: ${media.name}`);
+                                } catch (uploadError) {
+                                    // Xử lý lỗi upload/chuyển đổi file
+                                    if (
+                                        uploadError.message.includes("Unsupported file format") ||
+                                        uploadError.message.includes("File conversion failed")
+                                    ) {
+                                        logger.warn(
+                                            `[Lead Service] Không thể upload file ${media.name}: ${uploadError.message}`
+                                        );
+                                        // Gửi thông báo cho Lead về file không thể xử lý
+                                        try {
+                                            await sendZaloMessage(
+                                                leadUID,
+                                                `⚠️ Lưu ý: File "${media.name}" không thể được xử lý. Vui lòng gửi lại dưới định dạng PDF/DOC/DOCX.`,
+                                                accessToken
+                                            );
+                                        } catch (notifyError) {
+                                            logger.error(`Lỗi khi gửi thông báo:`, notifyError.message);
+                                        }
+                                    } else {
+                                        throw uploadError;
+                                    }
+                                }
                             }
                         } catch (mediaError) {
                             logger.error(`Lỗi khi gửi media đến Lead [${leadUID}]: ${mediaError.message}`);
