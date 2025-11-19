@@ -1,10 +1,10 @@
 import { Worker } from "bullmq";
 import logger from "./src/utils/logger.js";
 import conversationService from "./src/utils/conversation.js";
-import { handleChatService } from "./src/services/chatboxAI/chatbox.service.js";
-import { getValidAccessToken, sendZaloMessage } from "./src/services/chatboxAI/zalo.service.js";
-import { analyzeUserMessageService, informationForwardingSynthesisService } from "./src/services/chatboxAI/analyze.service.js";
-import { appendJsonToSheet } from "./src/services/chatboxAI/googleSheet.service.js";
+import { handleChatService } from "./src/chats/chatbox.service.js";
+import { analyzeUserMessageService, informationForwardingSynthesisService } from "./src/chats/analyze.service.js";
+import { appendJsonToSheet } from "./src/chats/googleSheet.js";
+import { getValidAccessToken, sendZaloMessage } from "./src/chats/zalo.service.js";
 
 const connection = {
     host: process.env.REDIS_HOST || "localhost",
