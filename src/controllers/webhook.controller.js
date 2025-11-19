@@ -17,8 +17,8 @@ export const handleZaloWebhook = async (req, res) => {
             return res.status(200).send("OK (UID not allowed)");
         }
 
-        // Kiểm tra tính hợp lệ của webhook - hỗ trợ cả text và image
-        if (!UID || (eventName !== "user_send_text" && eventName !== "user_send_image")) {
+        // Kiểm tra tính hợp lệ của webhook - hỗ trợ text, image, và file
+        if (!UID || (eventName !== "user_send_text" && eventName !== "user_send_image" && eventName !== "user_send_file")) {
             console.log(eventName);
             logger.warn("Webhook không hợp lệ (thiếu UID hoặc event_name không đúng)");
             return res.status(400).send("Invalid webhook data");
@@ -42,6 +42,26 @@ export const handleZaloWebhook = async (req, res) => {
                 messageFromUser = messageFromUser
                     ? `${messageFromUser}\n\n${imageInfo}`
                     : imageInfo;
+            }
+        }
+
+        if (eventName === "user_send_file" && attachments.length > 0) {
+            // Xử lý file
+            const fileInfo = attachments
+                .filter(att => att.type === "file")
+                .map((att, index) => {
+                    const url = att.payload?.url;
+                    const fileName = att.payload?.name || `File ${index + 1}`;
+                    const fileSize = att.payload?.size || "unknown";
+                    return url ? `[File ${index + 1}]: ${fileName} (${fileSize} bytes) - ${url}` : null;
+                })
+                .filter(Boolean)
+                .join("\n");
+
+            if (fileInfo) {
+                messageFromUser = messageFromUser
+                    ? `${messageFromUser}\n\n${fileInfo}`
+                    : fileInfo;
             }
         }
 

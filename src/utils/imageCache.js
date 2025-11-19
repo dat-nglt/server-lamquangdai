@@ -1,27 +1,49 @@
 /**
- * Tạm thời lưu trữ hình ảnh của khách hàng
- * Structure: { [UID]: { imageUrls: [], timestamp: Date } }
+ * Tạm thời lưu trữ media (hình ảnh & file) của khách hàng
+ * Structure: { [UID]: { media: [], timestamp: Date } }
  */
-const imageCache = new Map();
+const mediaCache = new Map();
 
 const CACHE_EXPIRY_TIME = 3600000; // 1 giờ (ms)
 
 export const storeCustomerImage = (UID, imageUrl) => {
-    if (!imageCache.has(UID)) {
-        imageCache.set(UID, {
-            imageUrls: [],
+    storeCustomerMedia(UID, { type: "image", url: imageUrl });
+};
+
+export const storeCustomerFile = (UID, fileUrl, fileName, fileSize) => {
+    storeCustomerMedia(UID, { type: "file", url: fileUrl, name: fileName, size: fileSize });
+};
+
+const storeCustomerMedia = (UID, mediaItem) => {
+    if (!mediaCache.has(UID)) {
+        mediaCache.set(UID, {
+            media: [],
             timestamp: Date.now(),
         });
     }
 
-    const cacheEntry = imageCache.get(UID);
-    if (!cacheEntry.imageUrls.includes(imageUrl)) {
-        cacheEntry.imageUrls.push(imageUrl);
+    const cacheEntry = mediaCache.get(UID);
+    // Tránh duplicate media
+    const isDuplicate = cacheEntry.media.some(m => m.url === mediaItem.url);
+    if (!isDuplicate) {
+        cacheEntry.media.push(mediaItem);
     }
 };
 
 export const getCustomerImages = (UID) => {
-    const cacheEntry = imageCache.get(UID);
+    return getCustomerMedia(UID, "image");
+};
+
+export const getCustomerFiles = (UID) => {
+    return getCustomerMedia(UID, "file");
+};
+
+export const getAllCustomerMedia = (UID) => {
+    return getCustomerMedia(UID, null); // null = all types
+};
+
+const getCustomerMedia = (UID, type = null) => {
+    const cacheEntry = mediaCache.get(UID);
 
     if (!cacheEntry) {
         return [];
@@ -29,13 +51,22 @@ export const getCustomerImages = (UID) => {
 
     // Kiểm tra xem cache có hết hạn không
     if (Date.now() - cacheEntry.timestamp > CACHE_EXPIRY_TIME) {
-        imageCache.delete(UID);
+        mediaCache.delete(UID);
         return [];
     }
 
-    return cacheEntry.imageUrls;
+    if (type === null) {
+        return cacheEntry.media;
+    }
+
+    return cacheEntry.media.filter(m => m.type === type);
 };
 
+export const clearCustomerMedia = (UID) => {
+    mediaCache.delete(UID);
+};
+
+// Giữ lại hàm cũ cho compatibility
 export const clearCustomerImages = (UID) => {
-    imageCache.delete(UID);
+    clearCustomerMedia(UID);
 };

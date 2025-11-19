@@ -4,7 +4,7 @@ import { extractPhoneNumber } from "../utils/extractPhoneNumber.js";
 import conversationService from "../utils/conversation.js";
 import logger from "../utils/logger.js";
 import { extractDisplayNameFromMessage, sendZaloMessage } from "./zalo.service.js";
-import { storeCustomerImage, getCustomerImages, clearCustomerImages } from "../utils/imageCache.js";
+import { storeCustomerImage, storeCustomerFile, getAllCustomerMedia, clearCustomerMedia } from "../utils/imageCache.js";
 
 const API_KEY = process.env.GEMENI_API_KEY;
 const ai = new GoogleGenAI({ apiKey: API_KEY });
@@ -83,6 +83,21 @@ export const analyzeUserMessageService = async (messageFromUser, UID, accessToke
         });
     }
 
+    // Trích xuất URL file từ tin nhắn nếu có
+    const fileUrlMatch = messageFromUser.match(/\[File \d+\]:\s*(.+?)\s*\((\d+)\s*bytes\)\s*-\s*(https?:\/\/[^\s]+)/g);
+    if (fileUrlMatch) {
+        fileUrlMatch.forEach((match) => {
+            const parsed = match.match(/\[File \d+\]:\s*(.+?)\s*\((\d+)\s*bytes\)\s*-\s*(https?:\/\/[^\s]+)/);
+            if (parsed) {
+                const fileName = parsed[1];
+                const fileSize = parsed[2];
+                const fileUrl = parsed[3];
+                storeCustomerFile(UID, fileUrl, fileName, fileSize);
+                logger.info(`[Data] Đã lưu trữ file khách hàng: ${fileName} (${fileSize} bytes)`);
+            }
+        });
+    }
+
     // Thêm try...catch ở đây để nó cũng ném lỗi 503 nếu có
     try {
         const analyzeFromAI = await chat.sendMessage({ message: prompt }); // Gọi AI để phân tích
@@ -107,8 +122,8 @@ export const informationForwardingSynthesisService = async (UID, dataCustomer, a
         "7365147034329534561",
     ];
 
-    // Lấy danh sách hình ảnh của khách hàng
-    const customerImages = getCustomerImages(UID);
+    // Lấy tất cả media (hình ảnh & file) của khách hàng
+    const allCustomerMedia = getAllCustomerMedia(UID);
 
     try {
         // Gửi tin nhắn đồng thời cho tất cả Lead UIDs
@@ -118,14 +133,32 @@ export const informationForwardingSynthesisService = async (UID, dataCustomer, a
                 await sendZaloMessage(leadUID, dataCustomer, accessToken);
                 logger.info(`Đã gửi thông tin khách hàng đến Lead [${leadUID}]`);
 
-                // Nếu có hình ảnh, gửi kèm từng hình ảnh
-                if (customerImages.length > 0) {
-                    for (const imageUrl of customerImages) {
+                // Nếu có media (hình ảnh & file), gửi kèm từng item
+                if (allCustomerMedia.length > 0) {
+                    for (const media of allCustomerMedia) {
                         try {
-                            await sendZaloMessage(leadUID, null, accessToken, { media_type: "image", url: imageUrl });
-                            logger.info(`Đã gửi hình ảnh đến Lead [${leadUID}]: ${imageUrl}`);
-                        } catch (imageError) {
-                            logger.error(`Lỗi khi gửi hình ảnh đến Lead [${leadUID}] ${imageError.message}`);
+                            if (media.type === "image") {
+                                await sendZaloMessage(
+                                    leadUID,
+                                    null,
+                                    accessToken,
+                                    { media_type: "image", url: media.url }
+                                );
+                                logger.info(`Đã gửi hình ảnh đến Lead [${leadUID}]: ${media.url}`);
+                            } else if (media.type === "file") {
+                                await sendZaloMessage(
+                                    leadUID,
+                                    `📎 File: ${media.name} (${media.size} bytes)`,
+                                    accessToken,
+                                    { media_type: "file", url: media.url }
+                                );
+                                logger.info(`Đã gửi file đến Lead [${leadUID}]: ${media.name}`);
+                            }
+                        } catch (mediaError) {
+                            logger.error(
+                                `Lỗi khi gửi media đến Lead [${leadUID}]:`,
+                                mediaError.message
+                            );
                         }
                     }
                 }
@@ -149,8 +182,8 @@ export const informationForwardingSynthesisService = async (UID, dataCustomer, a
             // Đánh dấu SĐT này đã được gửi thành công nếu có ít nhất 1 Lead nhận được
             conversationService.setLeadSent(UID, phoneNumberSent);
 
-            // Xóa cache hình ảnh sau khi gửi thành công
-            clearCustomerImages(UID);
+            // Xóa cache media sau khi gửi thành công
+            clearCustomerMedia(UID);
         }
 
         if (failCount === results.length) {
