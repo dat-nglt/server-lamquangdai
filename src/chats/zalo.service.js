@@ -118,6 +118,7 @@ export const sendZaloImage = async (UID, imageUrl, accessToken) => {
 
 /**
  * Hàm upload file lên Zalo và nhận token
+ * Lưu ý: Chỉ hỗ trợ file PDF/DOC/DOCX, dung lượng không vượt quá 5MB
  * @param {string} fileUrl - URL của file cần upload
  * @param {string} fileName - Tên file
  * @param {string} accessToken - Access token Zalo
@@ -129,12 +130,31 @@ export const uploadZaloFile = async (fileUrl, fileName, accessToken) => {
         throw new Error("Missing file URL or file name");
     }
 
+    // Kiểm tra định dạng file
+    const supportedFormats = [".pdf", ".doc", ".docx"];
+    const fileExtension = fileName.toLowerCase().substring(fileName.lastIndexOf("."));
+    if (!supportedFormats.includes(fileExtension)) {
+        logger.warn(`[Zalo API] File không được hỗ trợ: ${fileName}. Chỉ hỗ trợ PDF/DOC/DOCX`);
+        throw new Error(`Unsupported file format: ${fileExtension}. Only PDF/DOC/DOCX are supported`);
+    }
+
     try {
         // Tải file từ URL
+        logger.info(`[Zalo API] Bắt đầu tải file từ URL: ${fileUrl}`);
         const fileResponse = await axios.get(fileUrl, { responseType: "arraybuffer" });
         const fileBuffer = fileResponse.data;
 
-        const url = `${ZALO_API}/v3.0/oa/upload/file`;
+        // Kiểm tra kích thước file (max 5MB)
+        const maxFileSize = 5 * 1024 * 1024; // 5MB
+        if (fileBuffer.length > maxFileSize) {
+            logger.warn(`[Zalo API] File vượt quá kích thước tối đa (5MB): ${fileName}`);
+            throw new Error(
+                `File size exceeds 5MB limit. Current size: ${(fileBuffer.length / 1024 / 1024).toFixed(2)}MB`
+            );
+        }
+
+        // Sử dụng V2.0 API endpoint (theo curl example)
+        const url = `${ZALO_API}/v2.0/oa/upload/file`;
 
         // Tạo FormData để gửi file
         const form = new FormData();
@@ -145,28 +165,35 @@ export const uploadZaloFile = async (fileUrl, fileName, accessToken) => {
             access_token: accessToken,
         };
 
+        logger.info(`[Zalo API] Uploading file: ${fileName} (${(fileBuffer.length / 1024).toFixed(2)}KB)`);
+
         const response = await axios.post(url, form, { headers });
 
-        if (response.data?.data?.file_token) {
-            logger.info(`[Zalo API] Upload file thành công: ${fileName}, Token: ${response.data.data.file_token}`);
-            return response.data.data.file_token;
+        // Kiểm tra response theo format Zalo V2.0
+        if (response.data?.data?.token) {
+            logger.info(`[Zalo API] Upload file thành công: ${fileName}, Token: ${response.data.data.token}`);
+            return response.data.data.token;
+        } else if (response.data?.error === 0 && response.data?.data?.token) {
+            // Alternative response format
+            logger.info(`[Zalo API] Upload file thành công: ${fileName}, Token: ${response.data.data.token}`);
+            return response.data.data.token;
         } else {
             logger.error(
                 `[Zalo API] Upload file thất bại - không nhận được token:`,
                 JSON.stringify(response.data, null, 2)
             );
-            throw new Error("No file token received from Zalo API");
+            throw new Error(`Failed to get file token from Zalo API: ${response.data?.message || "Unknown error"}`);
         }
     } catch (error) {
-        logger.error(`[Zalo API] Lỗi khi upload file (${fileName}):`, error.response?.data?.message || error.message);
+        logger.error(`[Zalo API] Lỗi khi upload file (${fileName}): ${error.response?.data?.message || error.message}`);
         throw new Error(error.response?.data?.message || error.message || "Failed to upload file to Zalo");
     }
 };
 
 /**
- * Hàm gửi file Zalo CS (Chăm sóc khách hàng) - sử dụng file token
+ * Hàm gửi file Zalo CS (Chăm sóc khách hàng) - sử dụng file token từ V2.0 API
  * @param {string} UID - User ID của người nhận
- * @param {string} fileToken - Token của file đã được upload lên Zalo
+ * @param {string} fileToken - Token của file đã được upload lên Zalo (từ /v2.0/oa/upload/file)
  * @param {string} fileName - Tên file
  * @param {string} accessToken - Access token Zalo
  */
@@ -178,7 +205,7 @@ export const sendZaloFile = async (UID, fileToken, fileName, accessToken) => {
 
     const url = `${ZALO_API}/v3.0/oa/message/cs`;
 
-    // Cấu trúc Payload đúng cho việc gửi File
+    // Cấu trúc Payload cho V3.0 API sử dụng file token từ V2.0
     const payload = {
         recipient: { user_id: UID },
         message: {
