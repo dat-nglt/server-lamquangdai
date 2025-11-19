@@ -117,38 +117,82 @@ export const sendZaloImage = async (UID, imageUrl, accessToken) => {
 };
 
 /**
- * Hàm gửi file qua Zalo CS
+ * Hàm upload file lên Zalo và nhận token
+ * @param {string} fileUrl - URL của file cần upload
+ * @param {string} fileName - Tên file
+ * @param {string} accessToken - Access token Zalo
+ * @returns {Promise<string>} File token từ Zalo
+ */
+export const uploadZaloFile = async (fileUrl, fileName, accessToken) => {
+    if (!fileUrl || !fileName) {
+        logger.warn("[Zalo API] Thiếu URL file hoặc tên file để upload");
+        throw new Error("Missing file URL or file name");
+    }
+
+    try {
+        // Tải file từ URL
+        const fileResponse = await axios.get(fileUrl, { responseType: "arraybuffer" });
+        const fileBuffer = fileResponse.data;
+
+        const url = `${ZALO_API}/v3.0/oa/upload/file`;
+
+        // Tạo FormData để gửi file
+        const FormData = require("form-data");
+        const form = new FormData();
+        form.append("file", fileBuffer, fileName);
+
+        const headers = {
+            ...form.getHeaders(),
+            access_token: accessToken,
+        };
+
+        const response = await axios.post(url, form, { headers });
+
+        if (response.data?.data?.file_token) {
+            logger.info(`[Zalo API] Upload file thành công: ${fileName}, Token: ${response.data.data.file_token}`);
+            return response.data.data.file_token;
+        } else {
+            logger.error(`[Zalo API] Upload file thất bại - không nhận được token:`, JSON.stringify(response.data, null, 2));
+            throw new Error("No file token received from Zalo API");
+        }
+    } catch (error) {
+        logger.error(
+            `[Zalo API] Lỗi khi upload file (${fileName}):`,
+            error.response?.data?.message || error.message
+        );
+        throw new Error(error.response?.data?.message || error.message || "Failed to upload file to Zalo");
+    }
+};
+
+/**
+ * Hàm gửi file Zalo CS (Chăm sóc khách hàng) - sử dụng file token
  * @param {string} UID - User ID của người nhận
- * @param {string} fileUrl - URL của file
+ * @param {string} fileToken - Token của file đã được upload lên Zalo
  * @param {string} fileName - Tên file
  * @param {string} accessToken - Access token Zalo
  */
-export const sendZaloFile = async (UID, fileUrl, fileName, accessToken) => {
-    if (!UID || !fileUrl) {
-        logger.warn("[Zalo API] Thiếu UID hoặc URL file để gửi");
+export const sendZaloFile = async (UID, fileToken, fileName, accessToken) => {
+    if (!UID || !fileToken) {
+        logger.warn("[Zalo API] Thiếu UID hoặc File Token để gửi file");
         return;
     }
 
     const url = `${ZALO_API}/v3.0/oa/message/cs`;
+
+    // Cấu trúc Payload đúng cho việc gửi File
     const payload = {
         recipient: { user_id: UID },
         message: {
             attachment: {
-                type: "template",
+                type: "file",
                 payload: {
-                    template_type: "media",
-                    elements: [
-                        {
-                            media_type: "file",
-                            url: fileUrl,
-                        },
-                    ],
+                    token: fileToken,
                 },
             },
         },
     };
 
-    // Nếu có tên file, thêm vào tin nhắn
+    // Thêm text nếu có tên file
     if (fileName) {
         payload.message.text = `📎 File: ${fileName}`;
     }
@@ -163,7 +207,7 @@ export const sendZaloFile = async (UID, fileUrl, fileName, accessToken) => {
         const responseMessage = response.data.message;
 
         if (responseMessage.toLowerCase() === "success") {
-            logger.info(`[Zalo API] Đã gửi file thành công đến [UID: ${UID}]: ${fileName}`);
+            logger.info(`[Zalo API] Đã gửi file thành công đến [UID: ${UID}]: ${fileName || "Unknown"}`);
             return response.data;
         } else {
             logger.error(
@@ -174,7 +218,8 @@ export const sendZaloFile = async (UID, fileUrl, fileName, accessToken) => {
         }
     } catch (error) {
         logger.error(
-            `[Zalo API] Zalo API Error (sendZaloFile to ${UID}) ${error.response?.data?.message || error.message}`
+            `[Zalo API] Zalo API Error (sendZaloFile to ${UID}):`,
+            error.response?.data?.message || error.message
         );
         throw new Error(error.response?.data?.message || error.message || "Failed to send Zalo file");
     }
