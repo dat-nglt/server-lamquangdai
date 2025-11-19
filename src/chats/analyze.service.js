@@ -156,26 +156,19 @@ export const informationForwardingSynthesisService = async (UID, dataCustomer, a
                                     await sendZaloFile(leadUID, fileToken, media.name, accessToken);
                                     logger.info(`Đã gửi file đến Lead [${leadUID}]: ${media.name}`);
                                 } catch (uploadError) {
-                                    // Xử lý lỗi upload/chuyển đổi file
-                                    if (
-                                        uploadError.message.includes("Unsupported file format") ||
-                                        uploadError.message.includes("File conversion failed")
-                                    ) {
-                                        logger.warn(
-                                            `[Lead Service] Không thể upload file ${media.name}: ${uploadError.message}`
+                                    // Gửi thông báo cho Lead về file không thể upload
+                                    logger.warn(
+                                        `[Lead Service] Không thể upload file ${media.name}: ${uploadError.message}`
+                                    );
+                                    
+                                    try {
+                                        await sendZaloMessage(
+                                            leadUID,
+                                            `ℹ️ File "${media.name}" không thể được xử lý. Khách hàng đã gửi kèm file này.`,
+                                            accessToken
                                         );
-                                        // Gửi thông báo cho Lead về file không thể xử lý
-                                        try {
-                                            await sendZaloMessage(
-                                                leadUID,
-                                                `⚠️ Lưu ý: File "${media.name}" không thể được xử lý. Vui lòng gửi lại dưới định dạng PDF/DOC/DOCX.`,
-                                                accessToken
-                                            );
-                                        } catch (notifyError) {
-                                            logger.error(`Lỗi khi gửi thông báo:`, notifyError.message);
-                                        }
-                                    } else {
-                                        throw uploadError;
+                                    } catch (notifyError) {
+                                        logger.error(`Lỗi khi gửi thông báo:`, notifyError.message);
                                     }
                                 }
                             }
