@@ -3,7 +3,8 @@ import { SYSTEM_INSTRUCTION_ANALYZE } from "../promts/promt.v1.analyze.js";
 import { extractPhoneNumber } from "../utils/extractPhoneNumber.js";
 import conversationService from "../utils/conversation.js";
 import logger from "../utils/logger.js";
-import { extractDisplayNameFromMessage, sendZaloMessage } from "./zalo.service.js"; // Import hàm gửi Zalo
+import { extractDisplayNameFromMessage, sendZaloMessage } from "./zalo.service.js";
+import { storeCustomerImage, getCustomerImages, clearCustomerImages } from "../utils/imageCache.js";
 
 const API_KEY = process.env.GEMENI_API_KEY;
 const ai = new GoogleGenAI({ apiKey: API_KEY });
@@ -85,23 +86,65 @@ export const analyzeUserMessageService = async (messageFromUser, UID, accessToke
         logger.error(`[AI Analyze Error] Lỗi khi gọi Gemini - Phân tích hội thoại giữa OA & [${UID}]`, error.message);
         throw error; // Ném lỗi ra ngoài để worker biết và retry job
     }
+
+    // Trích xuất URL hình ảnh từ tin nhắn nếu có
+    const imageUrlMatch = messageFromUser.match(/\[Hình ảnh \d+\]:\s*(https?:\/\/[^\s]+)/g);
+    if (imageUrlMatch) {
+        imageUrlMatch.forEach((match) => {
+            const url = match.replace(/\[Hình ảnh \d+\]:\s*/, "").trim();
+            if (url) {
+                storeCustomerImage(UID, url);
+                logger.info(`[Data] Đã lưu trữ hình ảnh khách hàng: ${url}`);
+            }
+        });
+    }
 };
 
-export const informationForwardingSynthesisService = async (UID, dataCustomer, accessToken, phoneNumberSent) => {
+export const informationForwardingSynthesisService = async (
+    UID,
+    dataCustomer,
+    accessToken,
+    phoneNumberSent
+) => {
     // Danh sách UID của các Lead/Quản lý
     const LEAD_UIDS = [
-        // "5584155984018191145",
-        "1591235795556991810",
+        // // "5584155984018191145",
+        // "1591235795556991810",
         "7365147034329534561",
     ];
+
+    // Lấy danh sách hình ảnh của khách hàng
+    const customerImages = getCustomerImages(UID);
 
     try {
         // Gửi tin nhắn đồng thời cho tất cả Lead UIDs
         const sendPromises = LEAD_UIDS.map(async (leadUID) => {
             try {
-                const response = await sendZaloMessage(leadUID, dataCustomer, accessToken);
+                // Gửi tin nhắn chính với thông tin khách hàng
+                await sendZaloMessage(leadUID, dataCustomer, accessToken);
                 logger.info(`Đã gửi thông tin khách hàng đến Lead [${leadUID}]`);
-                return { leadUID, success: true, response };
+
+                // Nếu có hình ảnh, gửi kèm từng hình ảnh
+                if (customerImages.length > 0) {
+                    for (const imageUrl of customerImages) {
+                        try {
+                            await sendZaloMessage(
+                                leadUID,
+                                null,
+                                accessToken,
+                                { type: "image", url: imageUrl }
+                            );
+                            logger.info(`Đã gửi hình ảnh đến Lead [${leadUID}]: ${imageUrl}`);
+                        } catch (imageError) {
+                            logger.error(
+                                `Lỗi khi gửi hình ảnh đến Lead [${leadUID}]:`,
+                                imageError.message
+                            );
+                        }
+                    }
+                }
+
+                return { leadUID, success: true };
             } catch (error) {
                 logger.error(`Lỗi khi gửi thông tin đến Lead [${leadUID}]:`, error.message);
                 return { leadUID, success: false, error: error.message };
@@ -119,6 +162,9 @@ export const informationForwardingSynthesisService = async (UID, dataCustomer, a
         if (successCount > 0) {
             // Đánh dấu SĐT này đã được gửi thành công nếu có ít nhất 1 Lead nhận được
             conversationService.setLeadSent(UID, phoneNumberSent);
+
+            // Xóa cache hình ảnh sau khi gửi thành công
+            clearCustomerImages(UID);
         }
 
         if (failCount === results.length) {

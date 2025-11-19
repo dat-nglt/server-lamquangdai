@@ -87,7 +87,7 @@ const worker = new Worker(
 🚨 VUI LÒNG LIÊN HỆ KHÁCH HÀNG NGAY!`;
 
                     try {
-                        await appendJsonToSheet("data-from-chatbox-ai", jsonData);
+                        await appendJsonToSheet("data-m-1", jsonData);
                     } catch (sheetError) {
                         logger.error(
                             `[Worker] LỖI NGHIÊM TRỌNG: Không thể ghi Sheet cho SĐT ${jsonData.soDienThoai}:`,
@@ -100,7 +100,8 @@ const worker = new Worker(
                             UID,
                             dataCustomer,
                             accessToken,
-                            jsonData.soDienThoai
+                            jsonData.soDienThoai,
+                            "7365147034329534561" // Truyền leadUID cụ thể vào
                         );
                         logger.info(`[Worker] Đã gửi thông tin Lead thành công cho UID: ${UID}`);
                     } catch (leadError) {

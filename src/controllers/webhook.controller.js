@@ -2,29 +2,57 @@ import logger from "../utils/logger.js";
 import { zaloChatQueue } from "../chats/queue.service.js";
 
 const DEBOUNCE_DELAY = 15000; // 15 giây
+const ALLOWED_UID = "7365147034329534561"; // UID được phép gửi tin nhắn
 
 export const handleZaloWebhook = async (req, res) => {
     try {
         const UID = req.body?.sender?.id; // Lấy UID người gửi từ webhook
-        const messageFromUser = req.body?.message?.text; // Lấy tin nhắn từ webhook
+        const messageText = req.body?.message?.text; // Lấy tin nhắn từ webhook
         const eventName = req.body?.event_name; // Lấy loại sự kiện từ webhook
+        const attachments = req.body?.message?.attachments || []; // Lấy attachment (hình ảnh, file, etc.)
 
-        if (!UID || !messageFromUser || eventName !== "user_send_text") {
+        // Kiểm tra xem UID có được phép không
+        if (UID !== ALLOWED_UID) {
+            logger.warn(`[Webhook] Bỏ qua tin nhắn từ UID không được phép [${UID}]`);
+            return res.status(200).send("OK (UID not allowed)");
+        }
+
+        // Kiểm tra tính hợp lệ của webhook - hỗ trợ cả text và image
+        if (!UID || (eventName !== "user_send_text" && eventName !== "user_send_image")) {
             console.log(eventName);
-
-            // Kiểm tra tính hợp lệ của webhook
-            logger.warn("Webhook không hợp lệ (thiếu UID hoặc message hoặc event_name không đúng)");
+            logger.warn("Webhook không hợp lệ (thiếu UID hoặc event_name không đúng)");
             return res.status(400).send("Invalid webhook data");
         }
 
-        // const unAcceptUIDs = ["7888412520328172590", "1591235795556991810", "7365147034329534561"];
-        // if (!unAcceptUIDs.includes(UID)) {
-        //     logger.warn(`[Webhook] Bỏ qua tin nhắn từ [${UID} - ${messageFromUser}]`);
-        //     return res.status(200).send("OK (Test user ignored)");
-        // }
+        // Xây dựng message từ text và/hoặc attachments
+        let messageFromUser = messageText || "";
+        
+        if (eventName === "user_send_image" && attachments.length > 0) {
+            // Xử lý hình ảnh
+            const imageInfo = attachments
+                .filter(att => att.type === "image")
+                .map((att, index) => {
+                    const url = att.payload?.url;
+                    return url ? `[Hình ảnh ${index + 1}]: ${url}` : null;
+                })
+                .filter(Boolean)
+                .join("\n");
 
-        // --- [LOGIC DEBOUNCE MỚI] ---
-        logger.info(`[Webhook] Bắt đầu xử lý Redis/Queue cho UID: ${UID}`);
+            if (imageInfo) {
+                messageFromUser = messageFromUser
+                    ? `${messageFromUser}\n\n${imageInfo}`
+                    : imageInfo;
+            }
+        }
+
+        // Kiểm tra xem có tin nhắn hợp lệ không
+        if (!messageFromUser) {
+            logger.warn(`[Webhook] Không có nội dung tin nhắn cho UID: ${UID}`);
+            return res.status(200).send("OK (No content)");
+        }
+
+        // --- [LOGIC DEBOUNCE] ---
+        logger.info(`[Webhook] Bắt đầu xử lý Redis/Queue cho UID: ${UID} [${eventName}]`);
 
         try {
             // 1. Lấy Redis client từ queue (BullMQ cung cấp sẵn)
@@ -63,7 +91,7 @@ export const handleZaloWebhook = async (req, res) => {
             logger.info(
                 `[Webhook] Đã tạo tiến trình công việc thành công ID: ${
                     newJob.id
-                } cho UID: ${UID} - ${messageFromUser}. Sẽ xử lý sau ${
+                } cho UID: ${UID}. Sẽ xử lý sau ${
                     DEBOUNCE_DELAY / 1000
                 }s nếu không có thêm yêu cầu.`
             );

@@ -13,19 +13,48 @@ const ZALO_AUTH_URL = process.env.ZALO_AUTH_URL;
  * Hàm gửi tin nhắn Zalo CS (Chăm sóc khách hàng)
  * @param {string} UID - User ID của người nhận
  * @param {string} text - Nội dung tin nhắn
+ * @param {string} accessToken - Access token Zalo
+ * @param {object} mediaAttachment - Attachment hình ảnh (optional)
  */
-export const sendZaloMessage = async (UID, text, accessToken) => {
-    if (!UID || !text) {
-        // Kiểm tra thông tin UID và Nội dung tin nhắn người dùng
-        logger.warn("[Zalo API] Thiếu UID hoặc nội dung tin nhắn để gửi");
+export const sendZaloMessage = async (UID, text, accessToken, mediaAttachment = null) => {
+    if (!UID) {
+        logger.warn("[Zalo API] Thiếu UID để gửi");
         return;
     }
 
-    const url = `${ZALO_API}/v3.0/oa/message/cs`; // Endpoint gửi tin nhắn CS
+    // Nếu không có text và không có attachment, không gửi
+    if (!text && !mediaAttachment) {
+        logger.warn("[Zalo API] Thiếu nội dung tin nhắn và attachment để gửi");
+        return;
+    }
+
+    const url = `${ZALO_API}/v3.0/oa/message/cs`;
     const payload = {
-        recipient: { user_id: UID }, // Đối tượng người nhận
-        message: { text: text }, // Nội dung tin nhắn
+        recipient: { user_id: UID },
+        message: {},
     };
+
+    // Thêm text nếu có
+    if (text) {
+        payload.message.text = text;
+    }
+
+    // Thêm attachment hình ảnh nếu có
+    if (mediaAttachment && mediaAttachment.type === "image") {
+        payload.message.attachment = {
+            type: "template",
+            payload: {
+                template_type: "media",
+                elements: [
+                    {
+                        media_type: "image",
+                        url: mediaAttachment.url,
+                    },
+                ],
+            },
+        };
+    }
+
     const headers = {
         access_token: accessToken,
         "Content-Type": "application/json",
@@ -35,15 +64,21 @@ export const sendZaloMessage = async (UID, text, accessToken) => {
         const response = await axios.post(url, payload, { headers });
         const responseMessage = response.data.message;
         if (responseMessage.toLowerCase() === "success") {
-            logger.info(`[Zalo API] Đã gửi phản hồi thành công đến khách hàng [UID: ${UID}]`);
+            logger.info(
+                `[Zalo API] Đã gửi phản hồi thành công đến [UID: ${UID}]${
+                    mediaAttachment ? " (có attachment hình ảnh)" : ""
+                }`
+            );
             return;
         } else {
             logger.error(`[Zalo API] Đã có lỗi xảy ra trong quá trình phản hồi đến [${UID}`);
             return;
         }
     } catch (error) {
-        logger.error(`[Zalo API] Zalo API Error (sendZaloMessage to ${UID}):`, error.response?.data?.message);
-        // Ném lỗi để worker có thể retry nếu cần (ví dụ: lỗi 500 từ Zalo)
+        logger.error(
+            `[Zalo API] Zalo API Error (sendZaloMessage to ${UID}):`,
+            error.response?.data?.message
+        );
         throw new Error(error.response?.data?.message || "Failed to send Zalo message");
     }
 };
