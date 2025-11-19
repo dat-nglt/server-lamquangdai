@@ -185,7 +185,7 @@ export const uploadZaloFile = async (fileUrl, fileName, accessToken) => {
             throw new Error(`Failed to get file token from Zalo API: ${response.data?.message || "Unknown error"}`);
         }
     } catch (error) {
-        logger.error(`[Zalo API] Lỗi khi upload file (${fileName}): ${error.response?.data?.message || error.message}`);
+        logger.error(`[Zalo API] Lỗi khi upload file (${fileName}): ${error}`);
         throw new Error(error.response?.data?.message || error.message || "Failed to upload file to Zalo");
     }
 };

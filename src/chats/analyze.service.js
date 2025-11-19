@@ -3,7 +3,13 @@ import { SYSTEM_INSTRUCTION_ANALYZE } from "../promts/promt.v1.analyze.js";
 import { extractPhoneNumber } from "../utils/extractPhoneNumber.js";
 import conversationService from "../utils/conversation.js";
 import logger from "../utils/logger.js";
-import { extractDisplayNameFromMessage, sendZaloMessage, sendZaloImage, sendZaloFile, uploadZaloFile } from "./zalo.service.js";
+import {
+    extractDisplayNameFromMessage,
+    sendZaloMessage,
+    sendZaloImage,
+    sendZaloFile,
+    uploadZaloFile,
+} from "./zalo.service.js";
 import { storeCustomerImage, storeCustomerFile, getAllCustomerMedia, clearCustomerMedia } from "../utils/imageCache.js";
 
 const API_KEY = process.env.GEMENI_API_KEY;
@@ -144,16 +150,13 @@ export const informationForwardingSynthesisService = async (UID, dataCustomer, a
                                 // Upload file trước để lấy token
                                 logger.info(`[Lead Service] Đang upload file: ${media.name}`);
                                 const fileToken = await uploadZaloFile(media.url, media.name, accessToken);
-                                
+
                                 // Sau đó gửi file sử dụng token
                                 await sendZaloFile(leadUID, fileToken, media.name, accessToken);
                                 logger.info(`Đã gửi file đến Lead [${leadUID}]: ${media.name}`);
                             }
                         } catch (mediaError) {
-                            logger.error(
-                                `Lỗi khi gửi media đến Lead [${leadUID}]:`,
-                                mediaError.message
-                            );
+                            logger.error(`Lỗi khi gửi media đến Lead [${leadUID}]: ${mediaError.message}`);
                         }
                     }
                 }
