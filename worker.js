@@ -87,7 +87,7 @@ const worker = new Worker(
 🚨 VUI LÒNG LIÊN HỆ KHÁCH HÀNG NGAY!`;
 
                     try {
-                        await appendJsonToSheet("data-m-1", jsonData);
+                        await appendJsonToSheet("data-from-chatbox-ai", jsonData);
                     } catch (sheetError) {
                         logger.error(
                             `[Worker] LỖI NGHIÊM TRỌNG: Không thể ghi Sheet cho SĐT ${jsonData.soDienThoai}:`,

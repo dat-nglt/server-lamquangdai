@@ -71,6 +71,18 @@ export const analyzeUserMessageService = async (messageFromUser, UID, accessToke
   }
   `;
 
+    // Trích xuất URL hình ảnh từ tin nhắn nếu có - LÀM TRƯỚC khi gọi AI
+    const imageUrlMatch = messageFromUser.match(/\[Hình ảnh \d+\]:\s*(https?:\/\/[^\s]+)/g);
+    if (imageUrlMatch) {
+        imageUrlMatch.forEach((match) => {
+            const url = match.replace(/\[Hình ảnh \d+\]:\s*/, "").trim();
+            if (url) {
+                storeCustomerImage(UID, url);
+                logger.info(`[Data] Đã lưu trữ hình ảnh khách hàng: ${url}`);
+            }
+        });
+    }
+
     // Thêm try...catch ở đây để nó cũng ném lỗi 503 nếu có
     try {
         const analyzeFromAI = await chat.sendMessage({ message: prompt }); // Gọi AI để phân tích
@@ -85,18 +97,6 @@ export const analyzeUserMessageService = async (messageFromUser, UID, accessToke
     } catch (error) {
         logger.error(`[AI Analyze Error] Lỗi khi gọi Gemini - Phân tích hội thoại giữa OA & [${UID}]`, error.message);
         throw error; // Ném lỗi ra ngoài để worker biết và retry job
-    }
-
-    // Trích xuất URL hình ảnh từ tin nhắn nếu có
-    const imageUrlMatch = messageFromUser.match(/\[Hình ảnh \d+\]:\s*(https?:\/\/[^\s]+)/g);
-    if (imageUrlMatch) {
-        imageUrlMatch.forEach((match) => {
-            const url = match.replace(/\[Hình ảnh \d+\]:\s*/, "").trim();
-            if (url) {
-                storeCustomerImage(UID, url);
-                logger.info(`[Data] Đã lưu trữ hình ảnh khách hàng: ${url}`);
-            }
-        });
     }
 };
 
