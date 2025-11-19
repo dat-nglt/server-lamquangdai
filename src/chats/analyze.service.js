@@ -103,7 +103,6 @@ export const analyzeUserMessageService = async (messageFromUser, UID, accessToke
 export const informationForwardingSynthesisService = async (UID, dataCustomer, accessToken, phoneNumberSent) => {
     // Danh sách UID của các Lead/Quản lý
     const LEAD_UIDS = [
-        // // "5584155984018191145",
         // "1591235795556991810",
         "7365147034329534561",
     ];
@@ -126,7 +125,7 @@ export const informationForwardingSynthesisService = async (UID, dataCustomer, a
                             await sendZaloMessage(leadUID, null, accessToken, { type: "image", url: imageUrl });
                             logger.info(`Đã gửi hình ảnh đến Lead [${leadUID}]: ${imageUrl}`);
                         } catch (imageError) {
-                            logger.error(`Lỗi khi gửi hình ảnh đến Lead [${leadUID}]:`, imageError.message);
+                            logger.error(`Lỗi khi gửi hình ảnh đến Lead [${leadUID}] ${imageError.message}`);
                         }
                     }
                 }

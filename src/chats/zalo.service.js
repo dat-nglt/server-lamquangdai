@@ -17,8 +17,6 @@ const ZALO_AUTH_URL = process.env.ZALO_AUTH_URL;
  * @param {object} mediaAttachment - Attachment hình ảnh (optional)
  */
 export const sendZaloMessage = async (UID, text, accessToken, mediaAttachment = null) => {
-    console.log(1);
-    
     if (!UID) {
         logger.warn("[Zalo API] Thiếu UID để gửi");
         return;
@@ -48,8 +46,6 @@ export const sendZaloMessage = async (UID, text, accessToken, mediaAttachment = 
             media_url: mediaAttachment.url,
         };
     }
-    console.log(2);
-
     const headers = {
         access_token: accessToken,
         "Content-Type": "application/json",
