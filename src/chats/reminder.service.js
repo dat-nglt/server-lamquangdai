@@ -7,7 +7,7 @@ const REMINDER_MESSAGE = "Dạ không biết em có thể giúp gì thêm cho m�
 const REMINDER_CONFIG = {
     MAX_REMINDERS: 2, // Số lần gửi reminder tối đa
     INITIAL_DELAY: 15000, // 10 giây (delay đầu tiên)
-    RETRY_INTERVAL: 300000, // 5 phút (khoảng cách giữa các lần retry)
+    RETRY_INTERVAL: 600000, // 10 phút (khoảng cách giữa các lần retry)
     KEY_EXPIRY: 7200, // 2 giờ - TTL cho reminder keys
 };
 
