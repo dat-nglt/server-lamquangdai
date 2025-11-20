@@ -1,10 +1,11 @@
-import { Worker } from "bullmq";
+import { Worker, Queue } from "bullmq";
 import logger from "./src/utils/logger.js";
 import conversationService from "./src/utils/conversation.js";
 import { handleChatService } from "./src/chats/chatbox.service.js";
 import { analyzeUserMessageService, informationForwardingSynthesisService } from "./src/chats/analyze.service.js";
 import { appendJsonToSheet } from "./src/chats/googleSheet.js";
 import { getValidAccessToken, sendZaloMessage } from "./src/chats/zalo.service.js";
+import { setupReminderJob, handleReminderCheck, updateLastReceivedTime } from "./src/chats/reminder.service.js";
 
 const connection = {
     host: process.env.REDIS_HOST || "localhost",
@@ -12,38 +13,47 @@ const connection = {
     password: process.env.REDIS_PASSWORD || "dat20April@03",
 };
 
+const zaloChatQueue = new Queue("zalo-chat", { connection });
+
 logger.info("[Worker] Đang khởi động và lắng nghe hàng đợi [zalo-chat]...");
 
 const worker = new Worker(
-    "zalo-chat", // Tên hàng đợi
+    "zalo-chat",
     async (job) => {
-        const { UID, isDebounced } = job.data; // Lấy UID và cờ isDebounced từ dữ liệu job
-        const redisClient = await worker.client; // Lấy Redis client từ worker
-        const pendingMessageKey = `pending-msgs-${UID}`; // Key Redis cho tin nhắn chờ
-        let messageFromUser; // Biến này sẽ chứa tin nhắn cuối cùng (đã gộp)
+        const { UID, isDebounced } = job.data;
+        const redisClient = await worker.client;
+        const pendingMessageKey = `pending-msgs-${UID}`;
+        let messageFromUser;
 
+        // Handle reminder-check job
+        if (job.name === "reminder-check") {
+            await handleReminderCheck(redisClient, UID);
+            return;
+        }
+
+        // Handle normal zalo-chat job
         if (isDebounced) {
-            // 3. Lấy TẤT CẢ tin nhắn đang chờ
             const messages = await redisClient.lrange(pendingMessageKey, 0, -1);
 
             if (messages.length === 0) {
                 logger.warn(
                     `[Worker] Tiến trình ${job.id} cho UID ${UID} không có tin nhắn nào (có thể đã xử lý rồi) [bỏ qua...]`
                 );
-                return; // Hoàn thành job, không làm gì cả
+                return;
             }
 
-            // 5. Gộp các tin nhắn lại
             messageFromUser = messages.join(", ");
         } else {
-            // Trường hợp job cũ không có cờ "isDebounced"
             logger.warn(`[Worker] Job ${job.id} cho UID ${UID} không có cờ 'isDebounced'. Xử lý như job thường.`);
             messageFromUser = job.data.messageFromUser;
         }
 
+        // Cập nhật thời gian tin nhắn cuối cùng từ người dùng
+        await updateLastReceivedTime(redisClient, UID);
+
         // --- [LOGIC XỬ LÝ CHÍNH BẮT ĐẦU TỪ ĐÂY] ---
 
-        const accessToken = await getValidAccessToken(); // Lấy accessToken hợp lệ để gửi tin nhắn & tự động refresh nếu cần
+        const accessToken = await getValidAccessToken();
         if (!accessToken) {
             logger.error(`Không nhận được accessToken`);
             throw new Error("No valid access token available");
@@ -52,9 +62,8 @@ const worker = new Worker(
         logger.info(`[Worker] Bắt đầu xử lý phiên trò chuyện [${job.id}] cho ${UID} với nội dung: ${messageFromUser}`);
 
         try {
-            // 1. Lưu tin nhắn người dùng vào lịch sử cuộc trò chuyện [đã gộp nếu có]
             conversationService.addMessage(UID, "user", messageFromUser);
-            let jsonData = null; // Biến để lưu dữ liệu phân tích
+            let jsonData = null;
 
             logger.info(`[Worker] Đang phân tích tin nhắn người dùng cho UID ${UID}...`);
 
@@ -69,9 +78,8 @@ const worker = new Worker(
             }
 
             if (jsonData && jsonData.soDienThoai && jsonData.nhuCau) {
-                const previouslySentPhone = conversationService.getSentLeadPhone(UID); // Lấy SĐT đã gửi Lead (nếu có)
+                const previouslySentPhone = conversationService.getSentLeadPhone(UID);
                 if (previouslySentPhone && previouslySentPhone === jsonData.soDienThoai) {
-                    // Đã gửi Lead cho SĐT này rồi hay chưa???
                     logger.info(
                         `[Worker] Đã gửi thông tin đến Lead cho UID ${UID} rồi [bỏ qua việc gửi lại] - SĐT: ${jsonData.soDienThoai}`
                     );
@@ -107,29 +115,39 @@ const worker = new Worker(
                         logger.error(`[Worker] Lỗi khi GỬI LEAD cho UID ${UID}:`, leadError.message);
                     }
                 }
+                // Đánh dấu đã có số điện thoại
+                await redisClient.set(`has-phone-${UID}`, "true");
+                await redisClient.expire(`has-phone-${UID}`, 7200);
             } else {
                 logger.warn(`[Worker] Chưa đủ thông tin Lead hoặc lỗi phân tích cho UID: ${UID}`);
+                // Đánh dấu chưa có số điện thoại
+                await redisClient.set(`has-phone-${UID}`, "false");
+                await redisClient.expire(`has-phone-${UID}`, 7200);
             }
 
-            logger.info(`[Worker] Đang gọi AI phản hồi cho phiên trò chuyện [${UID}]  [${messageFromUser}]`); // 4. Xử lý chat với AI (dùng tin đã gộp)
+            logger.info(`[Worker] Đang gọi AI phản hồi cho phiên trò chuyện [${UID}]  [${messageFromUser}]`);
 
-            // Truyền accessToken vào handleChatService để có thể gửi thông báo cho ADMIN
-            const messageFromAI = await handleChatService(messageFromUser, UID, accessToken); // 5. Lưu phản hồi AI
+            const messageFromAI = await handleChatService(messageFromUser, UID, accessToken);
 
             conversationService.addMessage(UID, "model", messageFromAI);
-            logger.info(`[Worker] AI trả lời [${UID}]: ${messageFromAI.substring(0, 20)}...`); // 6. Gửi tin nhắn trả lời "thật" cho Zalo
+            logger.info(`[Worker] AI trả lời [${UID}]: ${messageFromAI.substring(0, 20)}...`);
 
             await sendZaloMessage(UID, messageFromAI, accessToken);
 
+            // Chỉ thiết lập reminder nếu chưa có số điện thoại
+            const hasPhone = await redisClient.get(`has-phone-${UID}`);
+            if (hasPhone !== "true") {
+                await setupReminderJob(redisClient, UID, zaloChatQueue);
+            } else {
+                logger.info(`[Worker] Bỏ qua reminder job cho UID: ${UID} (đã có số điện thoại)`);
+            }
+
             logger.info(`[Worker] Phiên trò chuyện [${job.id}] đã xử lý xong cho [${UID}]`);
-            // 4. Xóa key đó ra khỏi Redis để tránh xử lý lại & tràn bộ nhớ
             await redisClient.del(pendingMessageKey);
         } catch (error) {
-            // BẤT KỲ LỖI NÀO BỊ NÉM RA (chủ yếu là 503 từ handleChatService)
-            // Sẽ bị bắt ở đây.
             logger.error(
                 `[Worker] Phiên làm việc [${job.id}] xử lý thất bại cho ${UID}: ${error.message}. Sẽ tiến hành thực hiện lại...`
-            ); // Ném lỗi này ra ngoài để BullMQ biết và retry job
+            );
             throw error;
         }
     },
