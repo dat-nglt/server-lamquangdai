@@ -3,11 +3,18 @@ import { getValidAccessToken, sendZaloMessage } from "./zalo.service.js";
 
 const REMINDER_MESSAGE = "Dạ không biết em có thể giúp gì thêm cho mình không ạ";
 
+// Cấu hình reminder
+const REMINDER_CONFIG = {
+    MAX_REMINDERS: 2, // Số lần gửi reminder tối đa
+    INITIAL_DELAY: 15000, // 15 giây (delay đầu tiên)
+    RETRY_INTERVAL: 300000, // 5 phút (khoảng cách giữa các lần retry)
+    KEY_EXPIRY: 7200, // 2 giờ - TTL cho reminder keys
+};
+
 /**
  * Thiết lập reminder job để kiểm tra và gửi tin nhắn nhắc nhở sau một khoảng thời gian
  * @param {object} redisClient - Redis client
  * @param {string} UID - User ID
- * @param {string} messageFromAI - Tin nhắn cuối cùng từ AI
  * @param {object} zaloChatQueue - BullMQ queue
  */
 export const setupReminderJob = async (redisClient, UID, zaloChatQueue) => {
@@ -16,15 +23,25 @@ export const setupReminderJob = async (redisClient, UID, zaloChatQueue) => {
 
     try {
         await redisClient.set(lastSentKey, Date.now());
-        await redisClient.expire(lastSentKey, 7200);
+        await redisClient.expire(lastSentKey, REMINDER_CONFIG.KEY_EXPIRY);
+
+        // Xóa job cũ nếu tồn tại
+        try {
+            const existingJob = await zaloChatQueue.getJob(reminderJobId);
+            if (existingJob) {
+                await existingJob.remove();
+            }
+        } catch (error) {
+            logger.debug(`[Reminder Service] Không tìm thấy job cũ cho UID: ${UID}`);
+        }
 
         await zaloChatQueue.add(
             "reminder-check",
             { UID },
             {
                 jobId: reminderJobId,
-                delay: 10000, // 10 giây
-                // delay: 3600000, // 1 giờ
+                delay: REMINDER_CONFIG.INITIAL_DELAY,
+                removeOnComplete: true,
             }
         );
         logger.info(`[Reminder Service] Đã thiết lập reminder job cho UID: ${UID} (chưa có số điện thoại)`);
@@ -37,23 +54,24 @@ export const setupReminderJob = async (redisClient, UID, zaloChatQueue) => {
  * Xử lý công việc kiểm tra reminder và gửi tin nhắn nhắc nhở
  * @param {object} redisClient - Redis client
  * @param {string} UID - User ID
+ * @param {object} zaloChatQueue - BullMQ queue (tùy chọn, để schedule retry)
  */
-export const handleReminderCheck = async (redisClient, UID) => {
+export const handleReminderCheck = async (redisClient, UID, zaloChatQueue) => {
     const lastSentKey = `last-sent-${UID}`;
     const lastReceivedKey = `last-received-${UID}`;
-    const reminderSentKey = `reminder-sent-${UID}`;
+    const reminderCountKey = `reminder-count-${UID}`;
     const hasPhoneKey = `has-phone-${UID}`;
 
     try {
         const lastSent = await redisClient.get(lastSentKey);
         const lastReceived = await redisClient.get(lastReceivedKey);
-        const reminderSent = await redisClient.get(reminderSentKey);
+        const reminderCount = parseInt(await redisClient.get(reminderCountKey)) || 0;
         const hasPhone = await redisClient.get(hasPhoneKey);
 
         logger.info(`[Reminder Service] Kiểm tra reminder cho UID: ${UID}`, {
             lastSent,
             lastReceived,
-            reminderSent,
+            reminderCount,
             hasPhone,
         });
 
@@ -63,19 +81,43 @@ export const handleReminderCheck = async (redisClient, UID) => {
             return;
         }
 
-        // Nếu chưa gửi reminder, chưa có số điện thoại, và chưa có phản hồi mới => gửi reminder
-        if (!reminderSent && lastSent && (!lastReceived || parseInt(lastReceived) < parseInt(lastSent))) {
+        // Nếu đã gửi tối đa số reminder => bỏ qua
+        if (reminderCount >= REMINDER_CONFIG.MAX_REMINDERS) {
+            logger.info(`[Reminder Service] Đã gửi tối đa reminder cho UID: ${UID} (${reminderCount}/${REMINDER_CONFIG.MAX_REMINDERS})`);
+            return;
+        }
+
+        // Kiểm tra: chưa có số điện thoại, chưa có phản hồi mới => gửi reminder
+        if (lastSent && (!lastReceived || parseInt(lastReceived) < parseInt(lastSent))) {
             const accessToken = await getValidAccessToken();
             if (accessToken) {
                 await sendZaloMessage(UID, REMINDER_MESSAGE, accessToken);
-                logger.info(`[Reminder Service] Đã gửi tin nhắn reminder cho UID: ${UID}`);
-                await redisClient.set(reminderSentKey, "true");
+                logger.info(`[Reminder Service] Đã gửi tin nhắn reminder cho UID: ${UID} (lần ${reminderCount + 1}/${REMINDER_CONFIG.MAX_REMINDERS})`);
+
+                // Cập nhật counter
+                await redisClient.incr(reminderCountKey);
+                await redisClient.expire(reminderCountKey, REMINDER_CONFIG.KEY_EXPIRY);
+
+                // Schedule job tiếp theo nếu còn lần retry
+                if (reminderCount + 1 < REMINDER_CONFIG.MAX_REMINDERS && zaloChatQueue) {
+                    const nextJobId = `reminder-${UID}-${reminderCount + 1}`;
+                    await zaloChatQueue.add(
+                        "reminder-check",
+                        { UID },
+                        {
+                            jobId: nextJobId,
+                            delay: REMINDER_CONFIG.RETRY_INTERVAL,
+                            removeOnComplete: true,
+                        }
+                    );
+                    logger.info(`[Reminder Service] Đã lên lịch reminder tiếp theo cho UID: ${UID}`);
+                }
             } else {
                 logger.error(`[Reminder Service] Không thể lấy access token để gửi reminder cho UID: ${UID}`);
             }
         } else {
             logger.info(`[Reminder Service] Không cần gửi reminder cho UID: ${UID}`, {
-                alreadySent: !!reminderSent,
+                sentCount: reminderCount,
                 userResponded: lastReceived && parseInt(lastReceived) >= parseInt(lastSent),
             });
         }
@@ -93,9 +135,24 @@ export const updateLastReceivedTime = async (redisClient, UID) => {
     const lastReceivedKey = `last-received-${UID}`;
     try {
         await redisClient.set(lastReceivedKey, Date.now());
-        await redisClient.expire(lastReceivedKey, 7200);
+        await redisClient.expire(lastReceivedKey, REMINDER_CONFIG.KEY_EXPIRY);
         logger.info(`[Reminder Service] Cập nhật thời gian tin nhắn cuối cùng cho UID: ${UID}`);
     } catch (error) {
         logger.error(`[Reminder Service] Lỗi khi cập nhật last-received cho UID ${UID}:`, error.message);
+    }
+};
+
+/**
+ * Reset reminder cho user (khi user phản hồi hoặc có số điện thoại)
+ * @param {object} redisClient - Redis client
+ * @param {string} UID - User ID
+ */
+export const resetReminder = async (redisClient, UID) => {
+    const reminderCountKey = `reminder-count-${UID}`;
+    try {
+        await redisClient.del(reminderCountKey);
+        logger.info(`[Reminder Service] Đã reset reminder counter cho UID: ${UID}`);
+    } catch (error) {
+        logger.error(`[Reminder Service] Lỗi khi reset reminder cho UID ${UID}:`, error.message);
     }
 };
