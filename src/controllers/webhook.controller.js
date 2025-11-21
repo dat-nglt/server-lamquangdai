@@ -12,10 +12,10 @@ export const handleZaloWebhook = async (req, res) => {
         const attachments = req.body?.message?.attachments || []; // Lấy attachment (hình ảnh, file, etc.)
 
         // Kiểm tra xem UID có được phép không
-        // if (UID !== ALLOWED_UID) {
-        //     logger.warn(`[Webhook] Bỏ qua tin nhắn từ UID không được phép [${UID}]`);
-        //     return res.status(200).send("OK (UID not allowed)");
-        // }
+        if (UID !== ALLOWED_UID) {
+            logger.warn(`[Webhook] Bỏ qua tin nhắn từ UID không được phép [${UID}]`);
+            return res.status(200).send("OK (UID not allowed)");
+        }
 
         // Kiểm tra tính hợp lệ của webhook - hỗ trợ text, image, và file
         if (
