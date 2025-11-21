@@ -5,10 +5,9 @@ const REMINDER_MESSAGE = "Dạ không biết em có thể giúp gì thêm cho m�
 
 // Cấu hình reminder
 const REMINDER_CONFIG = {
-    MAX_REMINDERS: 1, // Số lần gửi reminder tối đa
-    INITIAL_DELAY: 60000, // 1 phút (delay đầu tiên)
-    RETRY_INTERVAL: 60000, // 1 phút (khoảng cách giữa các lần retry)
-    KEY_EXPIRY: 300, // 5 phút - TTL cho reminder keys
+    MAX_REMINDERS: 1, // Chỉ gửi 1 lần nhắc nhở
+    INITIAL_DELAY: 60000, // 1 phút (delay trước khi gửi nhắc nhở)
+    KEY_EXPIRY: 150, // 2.5 phút - TTL cho reminder keys (tự động reset)
 };
 
 /**
@@ -81,9 +80,9 @@ export const handleReminderCheck = async (redisClient, UID, zaloChatQueue) => {
             return;
         }
 
-        // Nếu đã gửi tối đa số reminder => bỏ qua
+        // Nếu đã gửi reminder 1 lần => bỏ qua (sẽ reset tự động sau 5 phút)
         if (reminderCount >= REMINDER_CONFIG.MAX_REMINDERS) {
-            logger.info(`[Reminder Service] Đã gửi tối đa reminder cho UID: ${UID} (${reminderCount}/${REMINDER_CONFIG.MAX_REMINDERS})`);
+            logger.info(`[Reminder Service] Đã gửi reminder cho UID: ${UID} (${reminderCount}/${REMINDER_CONFIG.MAX_REMINDERS}), chờ reset tự động`);
             return;
         }
 
@@ -97,21 +96,7 @@ export const handleReminderCheck = async (redisClient, UID, zaloChatQueue) => {
                 // Cập nhật counter
                 await redisClient.incr(reminderCountKey);
                 await redisClient.expire(reminderCountKey, REMINDER_CONFIG.KEY_EXPIRY);
-
-                // Schedule job tiếp theo nếu còn lần retry
-                if (reminderCount + 1 < REMINDER_CONFIG.MAX_REMINDERS && zaloChatQueue) {
-                    const nextJobId = `reminder-${UID}-${reminderCount + 1}`;
-                    await zaloChatQueue.add(
-                        "reminder-check",
-                        { UID },
-                        {
-                            jobId: nextJobId,
-                            delay: REMINDER_CONFIG.RETRY_INTERVAL,
-                            removeOnComplete: true,
-                        }
-                    );
-                    logger.info(`[Reminder Service] Đã lên lịch reminder tiếp theo cho UID: ${UID}`);
-                }
+                logger.info(`[Reminder Service] Sẽ reset reminder sau ${REMINDER_CONFIG.KEY_EXPIRY}s (5 phút)`);
             } else {
                 logger.error(`[Reminder Service] Không thể lấy access token để gửi reminder cho UID: ${UID}`);
             }
