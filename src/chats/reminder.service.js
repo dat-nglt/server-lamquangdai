@@ -6,8 +6,8 @@ const REMINDER_MESSAGE = "Dạ không biết em có thể giúp gì thêm cho m�
 // Cấu hình reminder
 const REMINDER_CONFIG = {
     MAX_REMINDERS: 1, // Chỉ gửi 1 lần nhắc nhở
-    INITIAL_DELAY: 60000, // 1 phút (delay trước khi gửi nhắc nhở)
-    KEY_EXPIRY: 150, // 2.5 phút - TTL cho reminder keys (tự động reset)
+    INITIAL_DELAY: 300000, // 5 phút (delay trước khi gửi nhắc nhở)
+    KEY_EXPIRY: 600, // 10 phút - TTL cho reminder keys (tự động reset)
 };
 
 /**
