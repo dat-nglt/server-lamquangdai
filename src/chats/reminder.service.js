@@ -8,7 +8,7 @@ const REMINDER_CONFIG = {
     MAX_REMINDERS: 1, // Số lần gửi reminder tối đa
     INITIAL_DELAY: 60000, // 1 phút (delay đầu tiên)
     RETRY_INTERVAL: 60000, // 1 phút (khoảng cách giữa các lần retry)
-    KEY_EXPIRY: 7200, // 2 giờ - TTL cho reminder keys
+    KEY_EXPIRY: 300, // 5 phút - TTL cho reminder keys
 };
 
 /**
