@@ -13,6 +13,7 @@ import Orders from "./orders.model.js";
 import Products from "./products.model.js";
 import Promotions from "./promotions.model.js";
 import ZaloTokens from "./zalo.token.model.js";
+import ApiKeys from "./api-keys.model.js";
 
 const db = {};
 
@@ -30,6 +31,7 @@ const modelDefiners = [
   Products,
   Promotions,
   ZaloTokens,
+  ApiKeys,
 ];
 
 // 3. Khởi tạo từng model và lưu vào object `db`
