@@ -2,8 +2,8 @@ import logger from "../utils/logger.js";
 import { zaloChatQueue } from "../chats/queue.service.js";
 
 const DEBOUNCE_DELAY = 20000; // 20 giây
-// const UN_ALLOWED_UID = ["1591235795556991810", "7365147034329534561"];
-const ALLOWED_UID = ["7365147034329534561"];
+const UN_ALLOWED_UID = ["1591235795556991810", "7365147034329534561"];
+// const ALLOWED_UID = ["7365147034329534561"];
 
 export const handleZaloWebhook = async (req, res) => {
   try {
@@ -13,7 +13,7 @@ export const handleZaloWebhook = async (req, res) => {
     const attachments = req.body?.message?.attachments || []; // Lấy attachment (hình ảnh, file, etc.)
 
     // Kiểm tra xem UID có được phép không
-    if (!ALLOWED_UID.includes(UID)) {
+    if (UN_ALLOWED_UID.includes(UID)) {
       logger.warn(`[Webhook] Bỏ qua tin nhắn từ UID không được phép [${UID}]`);
       return res.status(200).send("OK (UID not allowed)");
     }
